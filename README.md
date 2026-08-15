@@ -41,9 +41,28 @@ Acceptable for now: the cluster registry's `crossplaneReady` flag
 + the Attached-tier catalog can reconcile," not "the full observability stack
 exists."
 
+## Credentials (not GitOps-tracked, deliberately)
+
+`argocd-repo-creds-jfillman` - a `repo-creds` `Secret` in `argocd`
+(url-prefix `https://github.com/jfillman`), reusing `provider-github`'s own
+already-cluster-resident PAT from `kind-dev` (piped cluster-Secret-to-cluster-Secret
+during setup, never printed to chat or committed anywhere). Needed because ArgoCD
+has no git credentials for any of `jfillman`'s **private** repos by default, and
+every app's own `gitops-<app-name>` repo is private - confirmed live the same way
+`kind-dev`'s own equivalent Secret was (see `gitops-cluster-dev/README.md`). Each
+ArgoCD instance needs its own copy; this doesn't carry over from `kind-dev`
+automatically.
+
 ## Status
 
-Bootstrapped 2026-08-15, live-verified alongside `idp-service-catalog`
-`ApplicationEnvironment`'s new `spec.cluster` field/registry gate - see
-`idp-service-catalog`'s own README and `idp/docs/service-catalog-design.md` §0 for
-the full design.
+Bootstrapped 2026-08-15 and **live-verified end-to-end the same day**: both the
+registry-gate rejection path (`crossplaneReady: "false"` → zero resources created)
+and the full success path (real commits, this cluster's own ArgoCD picking up the
+new tenant unprompted, a real namespace/`ServiceAccount`/`NetworkPolicy`) proven with
+a throwaway app, fully torn down after - see `idp-service-catalog`'s own README and
+`idp/docs/service-catalog-design.md` §0 for the full design and
+[[idp_session_applicationenvironment_xrd]]/[[idp_session_multicluster_architecture]]
+memory for the session detail. One real bug found live: the cluster's shared
+`app.yaml` needed `managementPolicies` excluding `"Delete"`, not
+`spec.deletionPolicy: Orphan` as originally planned - `provider-upjet-github`
+v0.19.1's `RepositoryFile` CRD has no such field.
