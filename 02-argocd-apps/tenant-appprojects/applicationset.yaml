@@ -1,0 +1,51 @@
+# Direct adaptation of gitops-cluster-dev/02-argocd-apps/tenant-appprojects/
+# applicationset.yaml - same mechanism (git generator over tenants/*/app.yaml, one
+# Application per app rendering ./chart's single AppProject template), pointed at
+# this cluster's own tenants repo instead. See that file's own header for the full
+# design rationale, unchanged here.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-appprojects
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: tenant-onboarding
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=invalid"]
+  generators:
+    - git:
+        repoURL: https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
+        revision: main
+        files:
+          - path: "tenants/*/app.yaml"
+  template:
+    metadata:
+      name: "{{.appName}}-appproject"
+      labels:
+        platform.io/component: cluster-config
+        platform.io/subcomponent: tenant-onboarding
+        platform.io/app: "{{.appName}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+        targetRevision: main
+        path: 02-argocd-apps/tenant-appprojects/chart
+        helm:
+          valuesObject:
+            appName: "{{.appName}}"
+            gitopsRepoUrl: "{{.gitopsRepoUrl}}"
+            idpServiceCatalogRepoUrl: "https://github.com/jfillman/idp-service-catalog.git"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

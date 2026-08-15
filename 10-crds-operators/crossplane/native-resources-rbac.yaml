@@ -1,0 +1,19 @@
+# Crossplane's own controller ServiceAccount has no built-in RBAC for native
+# resource kinds a Composition composes directly - see
+# gitops-cluster-dev/10-crds-operators/crossplane/native-resources-rbac.yaml's own
+# header for the full explanation. Scoped to just what SLO needs here
+# (sloth.slok.dev PrometheusServiceLevel) - no argoproj.io/batch/
+# monitoring.coreos.com grants, since this cluster doesn't run AI-triage or the
+# hand-rolled PrometheusRule-generating SLO revision.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane:native-resources:aggregate-to-crossplane
+  labels:
+    rbac.crossplane.io/aggregate-to-crossplane: "true"
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+rules:
+  - apiGroups: ["sloth.slok.dev"]
+    resources: ["prometheusservicelevels", "prometheusservicelevels/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

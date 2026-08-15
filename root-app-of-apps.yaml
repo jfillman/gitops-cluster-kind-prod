@@ -1,0 +1,40 @@
+# The one resource applied manually, once - same bootstrap pattern
+# gitops-cluster-dev/root-app-of-apps.yaml already establishes. Unlike kind-dev,
+# ArgoCD itself is NOT bootstrapped here - kind-prod already runs a live ArgoCD
+# instance (platform-cicd's own staging release pipeline predates this repo by
+# several days). Reusing it, confirmed with the user rather than assumed: same
+# single-instance-for-now precedent already used on kind-dev (the argocd-platform/
+# argocd-apps split is deferred there too), and platform-cicd's existing
+# cicd-flow-test-app-cluster-root/-staging Applications stay under project: default,
+# untouched - this repo's own Applications coexist alongside them, not in place of
+# them.
+#
+# REMINDER (same gotcha gitops-cluster-dev's own root already documents): this
+# Application's own .spec does NOT self-update from git - after editing this glob,
+# gitops-cluster-kind-prod-root itself needs a manual hard-refresh before its newly-
+# includable children get discovered.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitops-cluster-kind-prod-root
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: app-of-apps
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: .
+    directory:
+      recurse: true
+      include: "{**/application.yaml,**/packages-application.yaml,**/applicationset.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

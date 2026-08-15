@@ -1,0 +1,26 @@
+# Direct copy of gitops-cluster-dev's own already-fixed version (includes the
+# clusterResourceWhitelist: Namespace grant - see that file's own header for the
+# real bug this fixes: an AppProject with no clusterResourceWhitelist implicitly
+# denies every cluster-scoped resource, including the Namespace CreateNamespace=true
+# needs to create). Copied fixed, not the pre-fix version - don't reintroduce that
+# bug here.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .Values.appName }}
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: tenant-onboarding
+    platform.io/app: {{ .Values.appName }}
+spec:
+  description: "Per-app AppProject for {{ .Values.appName }}, gitops-strategy.md §6"
+  sourceRepos:
+    - {{ .Values.idpServiceCatalogRepoUrl }}
+    - {{ .Values.gitopsRepoUrl }}
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "app-{{ .Values.appName }}-*"
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

@@ -1,0 +1,62 @@
+# Direct adaptation of gitops-cluster-dev/02-argocd-apps/tenant-onboarding/
+# applicationset.yaml - same two-source Application shape (§5 of gitops-
+# strategy.md), pointed at this cluster's own tenants repo, with cluster: kind-prod
+# hardcoded here (matching the SAME pattern that file uses for kind-dev - each
+# cluster's own ApplicationSet hardcodes its own name, ApplicationEnvironment's
+# spec.cluster field just has to match whichever cluster's ApplicationSet it's
+# targeting). See that file's own header for the full design rationale, unchanged
+# here.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-onboarding
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: tenant-onboarding
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=invalid"]
+  generators:
+    - git:
+        repoURL: https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
+        revision: main
+        files:
+          - path: "tenants/*/*/identity.yaml"
+  template:
+    metadata:
+      name: "{{.appName}}-{{.env}}"
+      labels:
+        platform.io/component: cluster-config
+        platform.io/subcomponent: tenant-onboarding
+        platform.io/app: "{{.appName}}"
+        platform.io/env: "{{.env}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      namespace: argocd
+    spec:
+      project: "{{.appName}}"
+      sources:
+        - repoURL: https://github.com/jfillman/idp-service-catalog.git
+          targetRevision: v0.3.0
+          path: charts/idp-application
+          helm:
+            valuesObject:
+              appName: "{{.appName}}"
+              cluster: kind-prod
+              envName: "{{.env}}"
+            valueFiles:
+              - $appsrc/kind-prod/{{.env}}/values.yaml
+        - repoURL: "{{.gitopsRepoUrl}}"
+          targetRevision: main
+          ref: appsrc
+          directory:
+            exclude: "*"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "app-{{.appName}}-{{.env}}"
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

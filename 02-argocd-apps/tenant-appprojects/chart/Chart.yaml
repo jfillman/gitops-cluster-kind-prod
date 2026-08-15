@@ -1,0 +1,6 @@
+apiVersion: v2
+# Direct copy of gitops-cluster-dev's own tenant-appproject chart - see that
+# repo's own Chart.yaml/applicationset.yaml for the full design rationale.
+name: tenant-appproject
+description: Renders one per-app AppProject, values-driven, for the tenant-appprojects ApplicationSet
+version: 0.1.0

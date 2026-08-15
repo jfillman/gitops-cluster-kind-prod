@@ -1,0 +1,31 @@
+# Pins idp-service-catalog to the same tag gitops-cluster-dev uses (v0.3.0) but,
+# unlike that repo's own Application, deliberately SCOPED here - see
+# idp/docs/service-catalog-design.md §0 "Where Crossplane runs across a multi-
+# cluster fleet". Explicit file list, not a wildcard: xrds/slo.yaml +
+# compositions/slo/composition.yaml only. NodeJSApplication/ApplicationEnvironment
+# stay dev-only (Bootstrap-tier centralizes permanently, regardless of fleet size -
+# they're pure provider-github writers, no locality requirement at all), so they're
+# deliberately excluded here rather than installed and simply unused.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: idp-service-catalog
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: service-catalog
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/idp-service-catalog.git
+    targetRevision: v0.3.0
+    path: .
+    directory:
+      recurse: true
+      include: "{xrds/slo.yaml,compositions/slo/composition.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

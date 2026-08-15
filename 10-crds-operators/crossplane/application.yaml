@@ -1,0 +1,44 @@
+# ArgoCD Application for Crossplane itself - same chart/version as
+# gitops-cluster-dev/10-crds-operators/crossplane/application.yaml (2.3.4), so
+# behavior stays consistent across the fleet. project: default, matching this
+# cluster's existing Applications (see root-app-of-apps.yaml's own header for why).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  project: default
+  source:
+    repoURL: https://charts.crossplane.io/stable
+    chart: crossplane
+    targetRevision: 2.3.4
+    helm:
+      releaseName: crossplane
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+  # Self-signed webhook cert materials the chart generates at render time - every
+  # `helm template` produces new random bytes. Ignoring, not syncing - a real sync
+  # would regenerate and could break the webhook's live cert chain. Same
+  # ignoreDifferences gitops-cluster-dev's own crossplane Application already
+  # carries (found live there during its own Phase 1 adoption).
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: crossplane-root-ca
+      jsonPointers: ["/data"]
+    - group: ""
+      kind: Secret
+      name: crossplane-tls-client
+      jsonPointers: ["/data"]
+    - group: ""
+      kind: Secret
+      name: crossplane-tls-server
+      jsonPointers: ["/data"]

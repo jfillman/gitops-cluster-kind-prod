@@ -1,0 +1,23 @@
+# Scoped to what the Attached-tier catalog (SLO today) actually needs - see
+# providers.yaml's own header for the reasoning. No function-rollout-watcher (AI-
+# triage isn't built for this deployment model yet - service-catalog-design.md §0),
+# no function-patch-and-transform (nothing in this catalog uses it).
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-auto-ready
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  package: xpkg.crossplane.io/crossplane-contrib/function-auto-ready:v0.7.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-go-templating
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  package: xpkg.crossplane.io/crossplane-contrib/function-go-templating:v0.12.3

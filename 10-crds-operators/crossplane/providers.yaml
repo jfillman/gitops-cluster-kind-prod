@@ -1,0 +1,15 @@
+# Scoped Attached-tier install, deliberately narrower than gitops-cluster-dev's own
+# providers.yaml - see idp/docs/service-catalog-design.md §0 "Where Crossplane runs
+# across a multi-cluster fleet". provider-kubernetes only: provider-github backs
+# Bootstrap-tier XRDs (NodeJSApplication/ApplicationEnvironment), which stay
+# centralized on kind-dev permanently - kind-prod never needs a GitHub credential of
+# its own.
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-kubernetes
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v1.2.1
