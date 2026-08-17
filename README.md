@@ -33,6 +33,13 @@ multi-cluster fleet") actually requires here:
 - `02-argocd-apps/` - `tenant-appprojects`/`tenant-onboarding`, same mechanism as
   `kind-dev`'s own, pointed at `gitops-cluster-kind-prod-tenants` and hardcoding
   `cluster: kind-prod` where `kind-dev`'s own hardcodes `kind-dev`.
+- `10-crds-operators/external-secrets/` - added 2026-08-17, same default install as
+  `gitops-cluster-dev`'s own (chart `2.8.0`, controller only - no ClusterSecretStore/
+  ExternalSecret here, those are per-app). Not part of the original "deliberately
+  scoped" cut above - added after a real ArgoCD sync failure on `checkout-api-prod`
+  (`failed to discover server resources for group version external-secrets.io/v1`)
+  once that app actually started using `idp-application`'s `registryCredentials`/
+  `secrets:` mechanisms, both of which render an `ExternalSecret`.
 
 **Not installed here, deliberately**: Sloth/`kube-prometheus-stack` - a real `SLO` XR
 created against this cluster would compose cleanly but sit un-reconciled by Sloth.

@@ -1,0 +1,35 @@
+# Direct adaptation of gitops-cluster-dev/10-crds-operators/external-secrets/
+# application.yaml - same chart/version (2.8.0), so ESO behaves consistently across
+# the fleet. Fully default install - the ESO controller only; ClusterSecretStore/
+# ExternalSecret objects are per-app, not cluster config, and don't belong here (see
+# idp-application's own registryCredentials/secrets: mechanisms, which are what
+# actually needed this CRD live on kind-prod - real ArgoCD sync failures on
+# checkout-api-prod, "failed to discover server resources for group version
+# external-secrets.io/v1", confirmed live before this file existed).
+#
+# ServerSideApply=true - same annotation-size limit gitops-cluster-dev's own copy of
+# this file already hit (metadata.annotations too long on
+# clustersecretstores.external-secrets.io/secretstores.external-secrets.io).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-secrets
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  project: default
+  source:
+    repoURL: https://charts.external-secrets.io
+    chart: external-secrets
+    targetRevision: 2.8.0
+    helm:
+      releaseName: external-secrets
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-secrets
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
