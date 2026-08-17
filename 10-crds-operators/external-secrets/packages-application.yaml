@@ -1,0 +1,36 @@
+# Companion to this directory's own application.yaml (the ESO Helm chart itself) -
+# same two-Application-per-directory shape ../crossplane/ already establishes
+# (application.yaml for the chart, packages-application.yaml for raw manifests in the
+# same directory - the ONLY two Application filenames root-app-of-apps.yaml's own
+# discovery glob recognizes, alongside applicationset.yaml). A Helm-chart source can't
+# also sweep up sibling raw YAML files in its own directory, hence the split.
+#
+# Applies cluster-secret-store.yaml (this same directory) - the platform-secret-store
+# ClusterSecretStore + platform-secrets source namespace idp-application's
+# registryCredentials/secrets: mechanisms need. Depends on ESO's own CRDs/webhook
+# already being installed (application.yaml, this same directory) - if this
+# Application's own sync races that one on a from-scratch bootstrap, it self-heals
+# once ESO's CRD exists, same eventually-consistent pattern root-app-of-apps.yaml's own
+# header already documents for AppProject-before-Application races.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-secrets-packages
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: 10-crds-operators/external-secrets
+    directory:
+      exclude: "{application.yaml,packages-application.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-secrets
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
