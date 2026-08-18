@@ -1,13 +1,19 @@
 # The one resource applied manually, once - same bootstrap pattern
-# gitops-cluster-dev/root-app-of-apps.yaml already establishes. Unlike kind-dev,
-# ArgoCD itself is NOT bootstrapped here - kind-prod already runs a live ArgoCD
-# instance (platform-cicd's own staging release pipeline predates this repo by
-# several days). Reusing it, confirmed with the user rather than assumed: same
-# single-instance-for-now precedent already used on kind-dev (the argocd-platform/
-# argocd-apps split is deferred there too), and platform-cicd's existing
-# cicd-flow-test-app-cluster-root/-staging Applications stay under project: default,
-# untouched - this repo's own Applications coexist alongside them, not in place of
-# them.
+# gitops-cluster-dev/root-app-of-apps.yaml already establishes.
+#
+# STALE HISTORY, corrected 2026-08-18: this comment used to say ArgoCD itself is NOT
+# bootstrapped here, reusing a live instance predating this repo (platform-cicd's own
+# staging pipeline). That instance was deliberately deleted 2026-08-18 proving this
+# repo's own disaster-recovery story for real - see 01-argocd-platform/README.md's
+# "self-contained as of 2026-08-18" section. This cluster ALSO now has the
+# argocd-platform/argocd-apps split kind-dev has (01-argocd-platform/README.md's own
+# split section) - single-instance is no longer accurate either. platform-cicd's old
+# cicd-flow-test-app-cluster-root/-staging Applications did not survive the rebuild -
+# never git-tracked anywhere, so nothing could reproduce them.
+#
+# **/secret-application.yaml added 2026-08-18 alongside 40-observability/minio/ - same
+# pattern gitops-cluster-dev's own root already uses, this repo's glob just hadn't
+# needed it until now.
 #
 # REMINDER (same gotcha gitops-cluster-dev's own root already documents): this
 # Application's own .spec does NOT self-update from git - after editing this glob,
@@ -29,7 +35,7 @@ spec:
     path: .
     directory:
       recurse: true
-      include: "{**/application.yaml,**/packages-application.yaml,**/applicationset.yaml}"
+      include: "{**/application.yaml,**/packages-application.yaml,**/applicationset.yaml,**/secret-application.yaml}"
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
