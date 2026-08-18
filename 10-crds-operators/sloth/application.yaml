@@ -1,0 +1,58 @@
+# Sloth (sloth.dev) - watches PrometheusServiceLevel CRs and generates the
+# multiwindow-multi-burn-rate PrometheusRule (recording + alerting rules) for each.
+# Direct copy of gitops-cluster-dev's own sloth/application.yaml (same chart version,
+# same valuesObject) - see that file's own header for the full "why" behind each
+# setting. Added 2026-08-18, closing the gap flagged in this repo's own README
+# ("Not installed here, deliberately... a real SLO XR created against this cluster
+# would compose cleanly but sit un-reconciled by Sloth").
+#
+# Real caveat, not fully closed by this alone: Sloth generates a PrometheusRule, but
+# nothing on this cluster evaluates it yet - this repo deliberately doesn't run
+# kube-prometheus-stack (see README's "Not installed here, deliberately" - unchanged
+# by this addition). Sloth installed here means SLO XRs stop sitting fully
+# un-reconciled (the PrometheusServiceLevel -> PrometheusRule step now works), but the
+# rules won't actually fire alerts or populate error-budget metrics until Prometheus
+# exists on this cluster too. Narrower gap than before, not a closed one.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sloth
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/slok/sloth.git
+    targetRevision: v0.16.0
+    path: deploy/kubernetes/helm/sloth
+    helm:
+      releaseName: sloth
+      valuesObject:
+        # The community SLI plugins git-sync sidecar isn't needed - every SLI this
+        # catalog generates is a plain events{errorQuery,totalQuery} pair, not a
+        # plugin reference.
+        commonPlugins:
+          enabled: false
+        sloth:
+          # Compliance/error-budget window is a controller-wide default, not a
+          # per-SLO field on PrometheusServiceLevel (confirmed against the real CRD
+          # schema on gitops-cluster-dev - no window field under spec.slos[] at all).
+          defaultSloPeriod: 30d
+          # Stamps release=kube-prometheus-stack onto every generated PrometheusRule
+          # object's own metadata.labels (not just individual rules' labels) -
+          # confirmed live on gitops-cluster-dev by reading Sloth's own source
+          # (internal/plugin/k8stransform/prom_operator_prometheus_rule_v1/plugin.go,
+          # internal/app/kubecontroller/handler.go). Kept identical here even though
+          # this cluster has no kube-prometheus-stack instance yet (see header) - the
+          # label is harmless without Prometheus present, and correct the moment one
+          # is added, so there's no reason to diverge from gitops-cluster-dev's value.
+          extraLabels:
+            release: kube-prometheus-stack
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sloth-system
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

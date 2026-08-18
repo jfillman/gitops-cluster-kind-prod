@@ -1,0 +1,37 @@
+# Vendored, pinned manifest (install.yaml in this directory,
+# https://raw.githubusercontent.com/projectcontour/contour/release-1.32/examples/render/contour.yaml)
+# - direct copy of gitops-cluster-dev's own install.yaml, same version (v1.32.5), kept
+# identical rather than re-fetched independently. Added 2026-08-18 - this cluster never
+# had an Ingress controller at all. NOT about Argo Rollouts traffic management
+# (idp-application's rollout.yaml template carries no trafficRouting stanza - canary
+# here is native Argo Rollouts replica-weighting, no Contour/mesh integration wired
+# up); this is about idp-application's own
+# networkPolicy.ingressControllerNamespaceSelector, which hardcodes namespace
+# `projectcontour` as the source every app's NetworkPolicy allows ingress from - with
+# Calico now actually enforcing NetworkPolicy on this cluster (see
+# 01-argocd-platform/README.md's "kindnet -> Calico" section), that allow-rule
+# previously matched nothing, so real ingress traffic into any app here would have
+# been silently blocked once a NetworkPolicy-aware CNI was in place.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: contour
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: 10-crds-operators/contour
+    directory:
+      exclude: "{application.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: projectcontour
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

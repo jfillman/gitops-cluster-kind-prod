@@ -134,12 +134,19 @@ design the moment checkout-api's real workload actually deploys - but don't expe
 them to be doing anything today either. The "manual by design" step (`kubectl create
 secret` with the real GHCR credential, in `platform-secrets`) has never been done here.
 
-**Not installed here, deliberately**: Sloth/`kube-prometheus-stack` - a real `SLO` XR
-created against this cluster would compose cleanly but sit un-reconciled by Sloth.
-Acceptable for now: the cluster registry's `crossplaneReady` flag
+**Not installed here, deliberately**: `kube-prometheus-stack` - the cluster registry's
+`crossplaneReady` flag
 (`gitops-cluster-dev/00-bootstrap/cluster-registry/kind-prod.yaml`) means "Crossplane
-+ the Attached-tier catalog can reconcile," not "the full observability stack
-exists."
++ the Attached-tier catalog can reconcile," not "the full observability stack exists."
+Sloth itself **was** in this category too until 2026-08-18 (`10-crds-operators/sloth/`)
+- narrows the gap (a real `SLO` XR now gets its `PrometheusServiceLevel` turned into a
+real `PrometheusRule`) but doesn't close it: nothing on this cluster evaluates that
+`PrometheusRule` yet without Prometheus. Argo Rollouts (`10-crds-operators/
+argo-rollouts/`) and Contour (`10-crds-operators/contour/`, this cluster's actual
+Ingress controller - **not** used for Rollout traffic management, `idp-application`'s
+`rollout.yaml` carries no `trafficRouting` stanza, canary here is native
+replica-weighting) were added the same day, closing real gaps rather than deliberate
+scoping: neither had ever been installed here at all.
 
 ## Credentials (not GitOps-tracked, deliberately)
 
