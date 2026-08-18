@@ -1,8 +1,20 @@
 # Direct adaptation of gitops-cluster-dev/02-argocd-apps/tenant-appprojects/
-# applicationset.yaml - same mechanism (git generator over tenants/*/app.yaml, one
+# applicationset.yaml - same mechanism (git generator over tenants/*/identity.yaml, one
 # Application per app rendering ./chart's single AppProject template), pointed at
 # this cluster's own tenants repo instead. See that file's own header for the full
-# design rationale, unchanged here.
+# design rationale, unchanged here - including the 2026-08-18 identity.yaml/app.yaml
+# consolidation: this cluster's own tenants repo previously had ONLY app.yaml (no
+# separate identity.yaml existed here, since no platform-cicd instance runs on
+# kind-prod), but for one consistent schema across every cluster this catalog writes
+# a tenant identity file onto, ApplicationEnvironment's own cluster-identity-yaml.yaml
+# template (idp-service-catalog, compositions/applicationenvironment/) now writes
+# tenants/<app>/identity.yaml here too - same nested platformIdentity: shape as
+# kind-dev's, even though this cluster's chart below still only reads
+# .platformIdentity.appName/.gitopsRepoUrl from it (no lower-env tier, no CICD
+# onboarding here). Pre-existing tenants/<app>/app.yaml files on this cluster are
+# orphaned by this change, not auto-deleted (that writer's managementPolicies
+# deliberately exclude "Delete" - see cluster-identity-yaml.yaml's own header) -
+# cleaned up by hand as a one-time follow-up alongside this ApplicationSet's own edit.
 #
 # namespace: argocd-apps (moved 2026-08-18, was argocd) - this cluster's own
 # argocd-platform/argocd-apps split, mirroring kind-dev's. This ApplicationSet
@@ -27,14 +39,14 @@ spec:
         repoURL: https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
         revision: main
         files:
-          - path: "tenants/*/app.yaml"
+          - path: "tenants/*/identity.yaml"
   template:
     metadata:
-      name: "{{.appName}}-appproject"
+      name: "{{.platformIdentity.appName}}-appproject"
       labels:
         platform.io/component: cluster-config
         platform.io/subcomponent: tenant-onboarding
-        platform.io/app: "{{.appName}}"
+        platform.io/app: "{{.platformIdentity.appName}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       namespace: argocd-apps
@@ -46,8 +58,8 @@ spec:
         path: 02-argocd-apps/tenant-appprojects/chart
         helm:
           valuesObject:
-            appName: "{{.appName}}"
-            gitopsRepoUrl: "{{.gitopsRepoUrl}}"
+            appName: "{{.platformIdentity.appName}}"
+            gitopsRepoUrl: "{{.platformIdentity.gitopsRepoUrl}}"
             idpServiceCatalogRepoUrl: "https://github.com/jfillman/idp-service-catalog.git"
       destination:
         server: https://kubernetes.default.svc
