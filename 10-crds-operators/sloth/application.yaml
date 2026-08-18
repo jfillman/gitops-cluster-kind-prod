@@ -6,13 +6,12 @@
 # ("Not installed here, deliberately... a real SLO XR created against this cluster
 # would compose cleanly but sit un-reconciled by Sloth").
 #
-# Real caveat, not fully closed by this alone: Sloth generates a PrometheusRule, but
-# nothing on this cluster evaluates it yet - this repo deliberately doesn't run
-# kube-prometheus-stack (see README's "Not installed here, deliberately" - unchanged
-# by this addition). Sloth installed here means SLO XRs stop sitting fully
-# un-reconciled (the PrometheusServiceLevel -> PrometheusRule step now works), but the
-# rules won't actually fire alerts or populate error-budget metrics until Prometheus
-# exists on this cluster too. Narrower gap than before, not a closed one.
+# Update 2026-08-18, same day: the caveat above ("nothing evaluates the
+# PrometheusRule without kube-prometheus-stack") is now closed too -
+# 40-observability/kube-prometheus-stack/ installs the full stack this same pass.
+# metrics.enabled reverted to the chart default (removed below, was explicitly
+# false) now that monitoring.coreos.com/v1 actually exists on this cluster - matches
+# gitops-cluster-dev's own copy again.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -34,17 +33,6 @@ spec:
         # catalog generates is a plain events{errorQuery,totalQuery} pair, not a
         # plugin reference.
         commonPlugins:
-          enabled: false
-        # Real divergence from gitops-cluster-dev's own copy, not an oversight: the
-        # chart's PodMonitor template (metrics.enabled, default true) references
-        # monitoring.coreos.com/v1 unconditionally once enabled - that CRD only
-        # exists where kube-prometheus-stack is installed, which this cluster
-        # deliberately doesn't run (see this repo's README). Left at the chart
-        # default on gitops-cluster-dev, where kube-prometheus-stack IS installed.
-        # Disabling here isn't just cosmetic - ArgoCD's own dry-run resource
-        # discovery fails the ENTIRE sync batch (not just this one resource) if any
-        # manifest in it references a CRD that isn't installed, confirmed live.
-        metrics:
           enabled: false
         sloth:
           # Compliance/error-budget window is a controller-wide default, not a
