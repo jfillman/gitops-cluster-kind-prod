@@ -93,11 +93,14 @@ breaking this binding (the provider's pods would lack permissions to manage
 `ClusterSecretStore` objects) until someone notices and re-pins it against
 `kubectl get sa -n crossplane-system` on the rebuilt cluster.
 
-## Deliberately scoped, not a full mirror of gitops-cluster-dev
+## Deliberately scoped, not a full mirror of gitops-cluster-dev - for the Crossplane/
+service-catalog piece specifically
 
 Only what Bootstrap-tier's centralization design
 (`idp/docs/service-catalog-design.md` §0 "Where Crossplane runs across a
-multi-cluster fleet") actually requires here:
+multi-cluster fleet") actually requires here - this scoping was never meant to extend
+to the observability stack, see `40-observability/README.md` below, added 2026-08-18
+as a full mirror of `gitops-cluster-dev`'s own:
 
 - `10-crds-operators/crossplane/` - Crossplane core + `provider-kubernetes` only
   (**no** `provider-github` - that stays `kind-dev`-only, Bootstrap-tier XRDs never
@@ -134,19 +137,34 @@ design the moment checkout-api's real workload actually deploys - but don't expe
 them to be doing anything today either. The "manual by design" step (`kubectl create
 secret` with the real GHCR credential, in `platform-secrets`) has never been done here.
 
-**Not installed here, deliberately**: `kube-prometheus-stack` - the cluster registry's
-`crossplaneReady` flag
-(`gitops-cluster-dev/00-bootstrap/cluster-registry/kind-prod.yaml`) means "Crossplane
-+ the Attached-tier catalog can reconcile," not "the full observability stack exists."
-Sloth itself **was** in this category too until 2026-08-18 (`10-crds-operators/sloth/`)
-- narrows the gap (a real `SLO` XR now gets its `PrometheusServiceLevel` turned into a
-real `PrometheusRule`) but doesn't close it: nothing on this cluster evaluates that
-`PrometheusRule` yet without Prometheus. Argo Rollouts (`10-crds-operators/
-argo-rollouts/`) and Contour (`10-crds-operators/contour/`, this cluster's actual
-Ingress controller - **not** used for Rollout traffic management, `idp-application`'s
-`rollout.yaml` carries no `trafficRouting` stanza, canary here is native
-replica-weighting) were added the same day, closing real gaps rather than deliberate
-scoping: neither had ever been installed here at all.
+**Not deliberately scoped out anymore - closed 2026-08-18, all in one day.** Everything
+below was either always-missing (never installed here at all, not a scoping decision)
+or a narrower gap this same day's work closed for real:
+
+- **Argo Rollouts** (`10-crds-operators/argo-rollouts/`) - never installed here, even
+  though `idp-application` defaults to `Rollout` as its workload resource and
+  `checkout-api-prod`'s own `values.yaml` already carries a `rollout:` block. Any real
+  Rollout that synced here before would've sat as an inert, uncontrolled CR.
+- **Contour** (`10-crds-operators/contour/`) - this cluster's Ingress controller, never
+  installed here either. **Not** about Rollout traffic management -
+  `idp-application`'s `rollout.yaml` carries no `trafficRouting` stanza, canary here is
+  native replica-weighting. It's needed because `networkPolicy.
+  ingressControllerNamespaceSelector` hardcodes namespace `projectcontour` as the
+  ingress-allow source - with Calico now actually enforcing `NetworkPolicy` on this
+  cluster (see `01-argocd-platform/README.md`'s "kindnet -> Calico"), that rule
+  matched nothing until now.
+- **The full observability stack** (`40-observability/` - MinIO, `kube-prometheus-stack`,
+  Thanos, Loki, Tempo, `otel-collector`) - direct copies of `gitops-cluster-dev`'s own
+  manifests/values, same chart versions throughout, live-verified healthy (zero pod
+  restarts - the bucket-creation-order crash-loop `gitops-cluster-dev`'s own README
+  documents hitting was avoided here by syncing `minio`/`minio-secrets` first, per that
+  same README's documented sync order). See `40-observability/README.md`.
+- **Sloth** (`10-crds-operators/sloth/`) - installed earlier the same day with
+  `metrics.enabled: false` (no `kube-prometheus-stack` yet, so no
+  `monitoring.coreos.com/v1` CRD for its `PodMonitor` to reference). Reverted back to
+  the chart default once `kube-prometheus-stack` landed a few hours later - now matches
+  `gitops-cluster-dev`'s own copy exactly. SLO XRs on this cluster now get a real,
+  evaluated `PrometheusRule`, not just a generated-but-inert one.
 
 ## Credentials (not GitOps-tracked, deliberately)
 
