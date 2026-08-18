@@ -18,11 +18,43 @@ vendored-upstream-manifest pattern `gitops-cluster-dev/01-argocd-platform` alrea
 established, not an ArgoCD `Application` object (see that directory's own README for
 why not - the same bootstrap-ordering risk applies here). Pinned to
 `v3.5.0`/chart `10.3.2` specifically - matching what was actually running here before
-the rebuild (deliberately newer than `gitops-cluster-dev`'s own `v3.4.5` pin; kind-prod
-has never shared CRDs with a second local instance the way `kind-dev`'s
-`argocd-platform`/`argocd-apps` split does, so there's no version-skew constraint
-forcing them to match). Single instance, no `argocd-apps` split here - kind-prod's
-tenant/XR volume has never justified it, and this rebuild didn't change that calculus.
+the rebuild (deliberately newer than `gitops-cluster-dev`'s own `v3.4.5` pin).
+
+## argocd-platform / argocd-apps split - added 2026-08-18
+
+Two instances now, mirroring `kind-dev`: `01-argocd-platform/argocd-apps-install/
+application.yaml` installs a second `argo-cd` Helm release (chart `10.3.2`, matching
+this cluster's own platform instance exactly - both share the CRDs
+`01-argocd-platform/install.yaml` installs, `crds.install: false` on the second
+release) into its own `argocd-apps` namespace. `02-argocd-apps/`'s three
+ApplicationSets/AppProjects (`tenant-appprojects`, `tenant-onboarding`, `xr-requests`)
+now target `namespace: argocd-apps` throughout - same mechanism `gitops-cluster-dev`'s
+own split uses (the platform instance's root `Application` is what writes these
+objects, via its own recurse-glob; only `argocd-apps`'s own controller, scoped to its
+own release namespace, actually reconciles them). `argocd-apps` needs its own copy of
+`argocd-repo-creds-jfillman` - doesn't carry over from the platform instance
+automatically, same gotcha `gitops-cluster-dev`'s own split hit.
+
+**Real, non-hypothetical risk hit doing this migration, not present in `kind-dev`'s own
+precedent**: `kind-dev`'s split happened before any tenant had been onboarded ("zero
+live generated children existed under the old namespace before this move"). This
+cluster's split happened with `checkout-api` and three leftover test scenarios already
+live under the single-instance setup, so moving the ApplicationSets' target namespace
+left duplicate same-named `Application` objects (old copies in `argocd`, new in
+`argocd-apps`) both carrying the `resources-finalizer.argocd.argoproj.io` cascade-delete
+finalizer. Naive deletion of the old copies would have cascaded into deleting the real
+resources the new copies now also manage. Fixed by stripping the finalizer and deleting
+immediately in the same command (finalizer patch alone doesn't stick - ArgoCD's own
+reconcile loop re-adds it within seconds if there's any delay before the delete lands),
+verified live after every single deletion that the real resource it used to own was
+still present. One real transient side-effect from a race during this cleanup: the
+still-alive old `xr-requests`/`tenant-onboarding` ApplicationSets briefly recreated a
+couple of already-deleted children in `argocd` before their own deletion landed, which
+the new `argocd-apps` copies self-healed (SecretStore XRs, `AppProject`, and the
+underlying `InfisicalProject`/`InfisicalEnvironment` all show a fresh `AGE` from this
+churn, not the original provisioning time) - functionally fine, but worth knowing the
+real Infisical backend may carry a short-lived duplicate project/environment entry from
+the moment of the recreate, harmless but not automatically cleaned up here.
 
 **Bootstrap steps, in order** (same shape as `gitops-cluster-dev`'s own):
 
@@ -86,6 +118,21 @@ multi-cluster fleet") actually requires here:
   (`failed to discover server resources for group version external-secrets.io/v1`)
   once that app actually started using `idp-application`'s `registryCredentials`/
   `secrets:` mechanisms, both of which render an `ExternalSecret`.
+
+**`platform-secrets` namespace - real but currently inert, confirmed live 2026-08-18.**
+`checkout-api-prod`'s own `values.yaml` (`gitops-checkout-api/kind-prod/prod/
+values.yaml`) sets `registryCredentials.enabled: true`, which makes `idp-application`
+render an `ExternalSecret` named `registry-credentials` sourcing from
+`platform-secret-store` (`ClusterSecretStore`, `kubernetes` provider) →
+`platform-secrets` namespace. As of this date, though: zero `ExternalSecret` objects
+exist anywhere on this cluster and `platform-secrets` holds zero real `Secret`s - the
+mechanism has never actually been exercised. The `ghcr-pull-secret` currently live in
+`app-checkout-api-prod` is a separate, manually-applied `Secret` (different name,
+no ESO involvement at all), not what this pathway produces. Net: don't remove
+`platform-secrets`/`platform-secret-store` - they're load-bearing for the intended
+design the moment checkout-api's real workload actually deploys - but don't expect
+them to be doing anything today either. The "manual by design" step (`kubectl create
+secret` with the real GHCR credential, in `platform-secrets`) has never been done here.
 
 **Not installed here, deliberately**: Sloth/`kube-prometheus-stack` - a real `SLO` XR
 created against this cluster would compose cleanly but sit un-reconciled by Sloth.
