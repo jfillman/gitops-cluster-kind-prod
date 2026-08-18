@@ -35,6 +35,17 @@ spec:
         # plugin reference.
         commonPlugins:
           enabled: false
+        # Real divergence from gitops-cluster-dev's own copy, not an oversight: the
+        # chart's PodMonitor template (metrics.enabled, default true) references
+        # monitoring.coreos.com/v1 unconditionally once enabled - that CRD only
+        # exists where kube-prometheus-stack is installed, which this cluster
+        # deliberately doesn't run (see this repo's README). Left at the chart
+        # default on gitops-cluster-dev, where kube-prometheus-stack IS installed.
+        # Disabling here isn't just cosmetic - ArgoCD's own dry-run resource
+        # discovery fails the ENTIRE sync batch (not just this one resource) if any
+        # manifest in it references a CRD that isn't installed, confirmed live.
+        metrics:
+          enabled: false
         sloth:
           # Compliance/error-budget window is a controller-wide default, not a
           # per-SLO field on PrometheusServiceLevel (confirmed against the real CRD
