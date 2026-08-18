@@ -6,11 +6,15 @@
 # spec.cluster field just has to match whichever cluster's ApplicationSet it's
 # targeting). See that file's own header for the full design rationale, unchanged
 # here.
+#
+# namespace: argocd-apps (moved 2026-08-18, was argocd) - argocd-platform/argocd-apps
+# split, mirroring kind-dev's. See tenant-appprojects/applicationset.yaml's own header
+# for why the cross-namespace write from the platform instance's root is safe.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: tenant-onboarding
-  namespace: argocd
+  namespace: argocd-apps
   labels:
     platform.io/component: cluster-config
     platform.io/subcomponent: tenant-onboarding
@@ -33,7 +37,7 @@ spec:
         platform.io/env: "{{.env}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
-      namespace: argocd
+      namespace: argocd-apps
     spec:
       project: "{{.appName}}"
       sources:

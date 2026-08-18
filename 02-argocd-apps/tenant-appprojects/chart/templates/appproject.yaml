@@ -8,7 +8,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: {{ .Values.appName }}
-  namespace: argocd
+  namespace: argocd-apps
   labels:
     platform.io/component: cluster-config
     platform.io/subcomponent: tenant-onboarding

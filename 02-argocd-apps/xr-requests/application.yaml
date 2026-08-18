@@ -5,11 +5,16 @@
 # directory are both discovered independently once gitops-cluster-kind-prod-root
 # picks up this new directory (needs a hard-refresh, per that root Application's
 # own documented gotcha - a brand new file, not just changed content).
+#
+# namespace/destination.namespace: argocd-apps (moved 2026-08-18, was argocd) -
+# argocd-platform/argocd-apps split, mirroring kind-dev's. See
+# tenant-appprojects/applicationset.yaml's own header for why the cross-namespace
+# write from the platform instance's root is safe.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: xr-requests-appproject
-  namespace: argocd
+  namespace: argocd-apps
   labels:
     platform.io/component: cluster-config
     platform.io/subcomponent: xr-requests
@@ -23,7 +28,7 @@ spec:
       exclude: "{application.yaml,applicationset.yaml}"
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: argocd-apps
   syncPolicy:
     automated:
       selfHeal: true

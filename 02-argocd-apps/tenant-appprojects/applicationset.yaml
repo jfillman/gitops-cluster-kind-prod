@@ -3,11 +3,19 @@
 # Application per app rendering ./chart's single AppProject template), pointed at
 # this cluster's own tenants repo instead. See that file's own header for the full
 # design rationale, unchanged here.
+#
+# namespace: argocd-apps (moved 2026-08-18, was argocd) - this cluster's own
+# argocd-platform/argocd-apps split, mirroring kind-dev's. This ApplicationSet
+# itself is written into argocd-apps by the platform instance's own root
+# Application (root's own destination.namespace stays argocd - it's the writer,
+# not the reconciler - see argocd-apps-install/application.yaml's own header for
+# why this cross-namespace write is safe), but only the argocd-apps instance's own
+# controller (scoped to its own release namespace) actually reconciles it from here.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: tenant-appprojects
-  namespace: argocd
+  namespace: argocd-apps
   labels:
     platform.io/component: cluster-config
     platform.io/subcomponent: tenant-onboarding
@@ -29,7 +37,7 @@ spec:
         platform.io/app: "{{.appName}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
-      namespace: argocd
+      namespace: argocd-apps
     spec:
       project: default
       source:
@@ -43,7 +51,7 @@ spec:
             idpServiceCatalogRepoUrl: "https://github.com/jfillman/idp-service-catalog.git"
       destination:
         server: https://kubernetes.default.svc
-        namespace: argocd
+        namespace: argocd-apps
       syncPolicy:
         automated:
           selfHeal: true

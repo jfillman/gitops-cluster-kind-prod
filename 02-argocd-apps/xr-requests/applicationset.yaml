@@ -10,11 +10,15 @@
 # nothing here is SecretStore-specific mechanically - the AppProject's own
 # namespaceResourceWhitelist (appproject.yaml, same directory) is what actually
 # narrows it, not this generator.
+#
+# namespace: argocd-apps (moved 2026-08-18, was argocd) - argocd-platform/argocd-apps
+# split, mirroring kind-dev's. See tenant-appprojects/applicationset.yaml's own header
+# for why the cross-namespace write from the platform instance's root is safe.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: xr-requests
-  namespace: argocd
+  namespace: argocd-apps
   labels:
     platform.io/component: cluster-config
     platform.io/subcomponent: xr-requests
@@ -36,7 +40,7 @@ spec:
         platform.io/app: "{{.path.basename}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
-      namespace: argocd
+      namespace: argocd-apps
     spec:
       project: idp-onboarding
       source:
