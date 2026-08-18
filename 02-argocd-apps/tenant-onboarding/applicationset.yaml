@@ -42,7 +42,7 @@ spec:
       project: "{{.appName}}"
       sources:
         - repoURL: https://github.com/jfillman/idp-service-catalog.git
-          targetRevision: v0.3.18
+          targetRevision: v0.3.19
           path: charts/idp-application
           helm:
             valuesObject:
