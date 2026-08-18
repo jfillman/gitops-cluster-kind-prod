@@ -11,6 +11,13 @@
 # ApplicationEnvironment) DOES have per-cluster locality - it composes a real
 # ClusterSecretStore directly on whichever cluster its own Composition runs on -
 # idp/docs/service-catalog-design.md Item 8's multi-cluster revision.
+#
+# Destination is app-*-xrs, NOT app-*-cicd like kind-dev's copy - real, deliberate
+# divergence, not copy-paste drift. kind-dev's app-<appName>-cicd is accurate
+# there (it also hosts the real CICD control plane); on this cluster nothing
+# CICD-related ever runs, so reusing that name would falsely imply it does. -xrs
+# names what's actually here (user-suggested, 2026-08-18) and generalizes to any
+# future XR kind this mechanism ever carries here, not just SecretStore.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -21,11 +28,11 @@ metadata:
     platform.io/subcomponent: xr-requests
 spec:
   description: "SecretStore XR onboarding (service-catalog-design.md Item 8): renders
-    gitops-cluster-kind-prod-tenants/tenants/<app>/xr-requests/ into app-<appName>-cicd."
+    gitops-cluster-kind-prod-tenants/tenants/<app>/xr-requests/ into app-<appName>-xrs."
   sourceRepos:
     - https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
   destinations:
-    - namespace: "app-*-cicd"
+    - namespace: "app-*-xrs"
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ""
