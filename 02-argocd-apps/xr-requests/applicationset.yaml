@@ -1,0 +1,58 @@
+# Mirrors gitops-cluster-dev's own xr-requests/applicationset.yaml exactly (see that
+# file's own header for the full mechanism/reasoning - directories generator, not
+# files, for the same anti-circularity reason). The one real difference: this
+# cluster's own tenants repo (gitops-cluster-kind-prod-tenants) only ever receives
+# SecretStore XR manifests here (ApplicationEnvironment's own Composition writes
+# them, alongside the app.yaml/identity.yaml it already writes there) -
+# NodeJSApplication/ApplicationEnvironment themselves are never created on this
+# cluster (Bootstrap-tier stays dev-only permanently), so this ApplicationSet will
+# only ever actually see xr-requests/secretstore*.yaml files in practice, even
+# though nothing here is SecretStore-specific mechanically - the AppProject's own
+# namespaceResourceWhitelist (appproject.yaml, same directory) is what actually
+# narrows it, not this generator.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: xr-requests
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: xr-requests
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=invalid"]
+  generators:
+    - git:
+        repoURL: https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
+        revision: main
+        directories:
+          - path: "tenants/*"
+  template:
+    metadata:
+      name: "{{.path.basename}}-xr-requests"
+      labels:
+        platform.io/component: cluster-config
+        platform.io/subcomponent: xr-requests
+        platform.io/app: "{{.path.basename}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      namespace: argocd
+    spec:
+      project: idp-onboarding
+      source:
+        repoURL: https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
+        targetRevision: main
+        path: "tenants/{{.path.basename}}"
+        directory:
+          recurse: true
+          include: "xr-requests/*.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "app-{{.path.basename}}-cicd"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=background

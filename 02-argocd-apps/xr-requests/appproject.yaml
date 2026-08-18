@@ -1,0 +1,35 @@
+# Mirrors gitops-cluster-dev's own xr-requests/appproject.yaml (see that file's own
+# header for the full "why" - narrowly-scoped, not `default`, since it reads from
+# gitops-cluster-kind-prod-tenants, the lower-trust/PR-reviewed-but-lighter-bar repo).
+#
+# Scope is deliberately NARROWER than kind-dev's copy: namespaceResourceWhitelist
+# has only SecretStore, not NodeJSApplication/ApplicationEnvironment - those two
+# stay dev-only permanently (Bootstrap-tier's own locality rule), so this cluster
+# never needs to accept them even though the underlying mechanism (a generic
+# "apply whatever XR manifest shows up in xr-requests/") doesn't structurally care
+# which kind it is. Exists at all because SecretStore (unlike NodeJSApplication/
+# ApplicationEnvironment) DOES have per-cluster locality - it composes a real
+# ClusterSecretStore directly on whichever cluster its own Composition runs on -
+# idp/docs/service-catalog-design.md Item 8's multi-cluster revision.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: idp-onboarding
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: xr-requests
+spec:
+  description: "SecretStore XR onboarding (service-catalog-design.md Item 8): renders
+    gitops-cluster-kind-prod-tenants/tenants/<app>/xr-requests/ into app-<appName>-cicd."
+  sourceRepos:
+    - https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
+  destinations:
+    - namespace: "app-*-cicd"
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: catalog.idp.io
+      kind: SecretStore

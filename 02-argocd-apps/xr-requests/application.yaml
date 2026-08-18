@@ -1,0 +1,29 @@
+# Directory-source Application applying this folder's own AppProject as a plain
+# manifest - mirrors gitops-cluster-dev's own xr-requests/application.yaml exactly.
+# root-app-of-apps.yaml's include glob already matches both **/application.yaml and
+# **/applicationset.yaml, so this file and applicationset.yaml in this same
+# directory are both discovered independently once gitops-cluster-kind-prod-root
+# picks up this new directory (needs a hard-refresh, per that root Application's
+# own documented gotcha - a brand new file, not just changed content).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: xr-requests-appproject
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: xr-requests
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: 02-argocd-apps/xr-requests
+    directory:
+      exclude: "{application.yaml,applicationset.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      selfHeal: true
