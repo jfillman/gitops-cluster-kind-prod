@@ -1,0 +1,81 @@
+# The SAME operator image as gitops-cluster-dev's own copy (source:
+# idp-service-catalog/operators/infisical-secretstore-operator/) - no Infisical
+# instance runs on THIS cluster (idp/docs/service-catalog-design.md Item 8: Infisical
+# is shared platform infra, installed once, on kind-dev only). This Deployment exists
+# here because every InfisicalProject/InfisicalEnvironment CR this cluster's own
+# SecretStore Composition renders must be reconciled by a controller running ON this
+# cluster (no cluster ever holds credentials for another cluster's API - the
+# guiding constraint every Bootstrap/Attached-tier XRD in this catalog already
+# follows) - it just talks OUT to kind-dev's Infisical over the network instead of an
+# in-cluster Service.
+#
+# INFISICAL_API_URL: the NodePort address (gitops-cluster-dev/10-crds-operators/
+# infisical-secretstore-operator/infisical-nodeport.yaml) - confirmed live reachable
+# from a kind-prod pod, not assumed (a real 200 from /api/status). Local-kind-sandbox
+# specific, see that Service's own header for the real-deployment caveat. NO trailing
+# /api - main.py's own _req() already prefixes every call's path with /api/v1/... ;
+# a real bug caught live on this exact cluster (a double /api/api/v1/... 404) before
+# fixing this to match kind-dev's own Deployment's identical (no-/api) convention.
+#
+# INFISICAL_ADMIN_TOKEN: copied from kind-dev's own infisical-bootstrap-secret via a
+# direct kubectl-to-kubectl pipe, value never displayed/pasted anywhere - same
+# "never paste credentials" discipline as everywhere else in this project. A REAL
+# expansion of this token's blast radius versus the single-cluster design (now valid
+# on two clusters, not one) - an accepted, flagged cost of the "one shared Infisical
+# instance" choice (over a per-cluster Infisical instance) for upper-env secrets.
+#
+# INFISICAL_ORG_ID: same constant as kind-dev's own Deployment - one Infisical
+# instance, one org, regardless of which cluster is asking.
+#
+# No INFISICAL_K8S_CA_CERT/INFISICAL_K8S_TOKEN_REVIEWER_JWT/ESO_SERVICEACCOUNT_* -
+# this cluster's InfisicalProject CRs always get authMethod: universal (SecretStore
+# Composition's own cluster-based branch), never kubernetes - configure_kubernetes_auth()
+# is simply never called here, so main.py's own optional-env-var handling (see that
+# file's own header) means there's nothing missing to configure.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infisical-secretstore-operator
+  namespace: infisical
+  labels:
+    app: infisical-secretstore-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infisical-secretstore-operator
+  template:
+    metadata:
+      labels:
+        app: infisical-secretstore-operator
+    spec:
+      serviceAccountName: infisical-secretstore-operator
+      containers:
+        - name: operator
+          image: localhost/infisical-secretstore-operator:dev
+          imagePullPolicy: Never
+          env:
+            - name: USER
+              value: infisical-secretstore-operator
+            - name: INFISICAL_API_URL
+              value: http://10.89.0.2:31800
+            - name: INFISICAL_ORG_ID
+              value: "9144c116-d1eb-4cea-bac9-9b5272035ea7"
+            - name: INFISICAL_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: infisical-bootstrap-secret
+                  key: token
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop: ["ALL"]

@@ -1,0 +1,50 @@
+# Mirrors gitops-cluster-dev/10-crds-operators/crossplane/provider-kubernetes-config.yaml
+# (see that file's own header for the full "why") - needed here for the SAME reason,
+# now that the SecretStore XRD's Composition runs on this cluster too
+# (idp/docs/service-catalog-design.md Item 8's multi-cluster revision: Attached-tier
+# resources - and SecretStore behaves like one for locality purposes - must be
+# composed on the cluster they target, never cross-cluster).
+#
+# provider-kubernetes-f6665ef36536 - confirmed live against THIS cluster
+# (`kubectl get sa -n crossplane-system`), not copy-pasted from kind-dev's own value
+# unverified - happens to be the same revision suffix as kind-dev's, since both
+# clusters pin the same provider version, but that's a fact to re-check, not an
+# assumption to carry forward blindly if either cluster's pin ever diverges.
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  credentials:
+    source: InjectedIdentity
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: provider-kubernetes-applied-resources
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+rules:
+  - apiGroups: ["external-secrets.io"]
+    resources: ["clustersecretstores", "clustersecretstores/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: provider-kubernetes-applied-resources
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: provider-kubernetes-applied-resources
+subjects:
+  - kind: ServiceAccount
+    name: provider-kubernetes-f6665ef36536
+    namespace: crossplane-system
