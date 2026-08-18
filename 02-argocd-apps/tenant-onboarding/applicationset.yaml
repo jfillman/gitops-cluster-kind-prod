@@ -10,6 +10,14 @@
 # namespace: argocd-apps (moved 2026-08-18, was argocd) - argocd-platform/argocd-apps
 # split, mirroring kind-dev's. See tenant-appprojects/applicationset.yaml's own header
 # for why the cross-namespace write from the platform instance's root is safe.
+#
+# templatePatch (added 2026-08-18): optional 3rd source, a Kustomize
+# configMapGenerator for apps with many config files - opt-in via a
+# `configMapGenerator: true` field on the per-env identity.yaml. See kind-dev's own
+# version of this file for the full mechanism rationale (why this can't be a plain
+# `{{ if }}` block inside spec.template.spec.sources, the StrategicMergePatch/`{}`
+# no-op reasoning, the hasKey guard) - unchanged here beyond substituting kind-prod
+# throughout.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -64,3 +72,32 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+  templatePatch: |
+    {{- if hasKey . "configMapGenerator" }}
+    {{- if .configMapGenerator }}
+    spec:
+      sources:
+        - repoURL: https://github.com/jfillman/idp-service-catalog.git
+          targetRevision: v0.3.19
+          path: charts/idp-application
+          helm:
+            valuesObject:
+              appName: "{{.appName}}"
+              cluster: kind-prod
+              envName: "{{.env}}"
+            valueFiles:
+              - $appsrc/kind-prod/{{.env}}/values.yaml
+        - repoURL: "{{.gitopsRepoUrl}}"
+          targetRevision: main
+          ref: appsrc
+          directory:
+            exclude: "*"
+        - repoURL: "{{.gitopsRepoUrl}}"
+          targetRevision: main
+          path: kind-prod/{{.env}}/configmap
+    {{- else }}
+    {}
+    {{- end }}
+    {{- else }}
+    {}
+    {{- end }}
