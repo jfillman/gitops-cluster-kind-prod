@@ -5,15 +5,61 @@ Companion to [`idp-service-catalog`](https://github.com/jfillman/idp-service-cat
 and [`gitops-cluster-dev`](https://github.com/jfillman/gitops-cluster-dev), following
 the per-cluster repo shape `idp/docs/gitops-strategy.md` §1 establishes.
 
-## Not a blank cluster
+## ArgoCD bootstrap - self-contained as of 2026-08-18
 
-`kind-prod` already runs a live ArgoCD instance predating this repo by several days -
-`platform-cicd`'s own staging release pipeline (`cicd-flow-test-app-cluster-root`/
-`-staging` Applications, `project: default`). This repo's own `root-app-of-apps.yaml`
-reuses that instance rather than standing up a second one (confirmed with the user,
-not assumed) - same single-instance-for-now precedent already used on `kind-dev`
-itself. `platform-cicd`'s existing Applications are untouched; this repo's
-Applications coexist alongside them.
+Originally this repo reused a live ArgoCD instance predating it by several days
+(`platform-cicd`'s own staging release pipeline, installed imperatively by that repo's
+`hack/bootstrap-upper-cluster.sh`, no values file, nothing committed anywhere). That
+instance was deliberately removed 2026-08-18 as part of proving this repo's own
+disaster-recovery story end-to-end - "can you delete this cluster and rebuild it from
+git" needs a real answer, and "reuse whatever ArgoCD happens to already be running"
+isn't one. `01-argocd-platform/install.yaml` closes that gap: the same
+vendored-upstream-manifest pattern `gitops-cluster-dev/01-argocd-platform` already
+established, not an ArgoCD `Application` object (see that directory's own README for
+why not - the same bootstrap-ordering risk applies here). Pinned to
+`v3.5.0`/chart `10.3.2` specifically - matching what was actually running here before
+the rebuild (deliberately newer than `gitops-cluster-dev`'s own `v3.4.5` pin; kind-prod
+has never shared CRDs with a second local instance the way `kind-dev`'s
+`argocd-platform`/`argocd-apps` split does, so there's no version-skew constraint
+forcing them to match). Single instance, no `argocd-apps` split here - kind-prod's
+tenant/XR volume has never justified it, and this rebuild didn't change that calculus.
+
+**Bootstrap steps, in order** (same shape as `gitops-cluster-dev`'s own):
+
+```
+kind create cluster --name prod --config <kind-config with disableDefaultCNI: true, podSubnet 192.168.0.0/16>
+# install Calico (matching kind-dev's pinned v3.29.1) before anything else touches the cluster
+kubectl create namespace argocd
+kubectl apply --server-side -n argocd -f 01-argocd-platform/install.yaml
+# restore argocd-repo-creds-jfillman (see "Credentials" below) before the next step -
+# root's own repo is private
+kubectl apply -f root-app-of-apps.yaml
+```
+
+`--server-side`, not plain `apply` - same `applicationsets.argoproj.io` CRD-too-large-
+for-`last-applied-configuration` failure `gitops-cluster-dev`'s own README documents,
+hit here too rather than assumed to carry over.
+
+**kindnet → Calico, also fixed by this rebuild.** kind-prod ran kind's default
+`kindnet` CNI until 2026-08-18, which silently ignores every `NetworkPolicy` in this
+repo (same gap `gitops-cluster-dev` closed 2026-08-13, `idp/README.md`'s Phase 1 entry
+- confirmed live there that kindnet drops NetworkPolicy on the floor rather than
+rejecting it, so the failure mode is silent). kind-prod now gets the identical
+treatment: `disableDefaultCNI: true` at cluster-create time, Calico installed before
+anything else, pinned to the exact version already proven on `kind-dev` (`v3.29.1`)
+rather than "latest" - matching this platform's existing convention of pinning every
+version it can (Tekton/PaC/ArgoCD chart versions all have the same rationale, see
+`platform-cicd/hack/bootstrap.sh`'s own comments).
+
+**Known fragile point, re-check after every from-scratch rebuild, not just this one**:
+`10-crds-operators/crossplane/provider-kubernetes-config.yaml`'s `ClusterRoleBinding`
+hardcodes a Crossplane-generated `ServiceAccount` name
+(`provider-kubernetes-f6665ef36536`) that that file's own header already flags as "a
+fact to re-check, not an assumption to carry forward blindly." A fresh Crossplane +
+`provider-kubernetes` install may generate a different revision-hash suffix, silently
+breaking this binding (the provider's pods would lack permissions to manage
+`ClusterSecretStore` objects) until someone notices and re-pins it against
+`kubectl get sa -n crossplane-system` on the rebuilt cluster.
 
 ## Deliberately scoped, not a full mirror of gitops-cluster-dev
 
@@ -60,6 +106,18 @@ every app's own `gitops-<app-name>` repo is private - confirmed live the same wa
 ArgoCD instance needs its own copy; this doesn't carry over from `kind-dev`
 automatically.
 
+**Real Secrets on this cluster, none GitOps-tracked, none ever printed/committed**
+(current list as of the 2026-08-18 rebuild - back these up before any future
+deliberate teardown, same as this one):
+`argocd/argocd-repo-creds-jfillman`, `app-checkout-api-prod/ghcr-pull-secret`,
+`app-checkout-api-prod/platform-outcome-relay-token`,
+`app-checkout-api-xrs/checkout-api-kind-prod-infisical-creds`,
+`app-cicd-flow-test-app-staging/platform-outcome-relay-token` (test-app scaffolding,
+see "Status" below - lower value but cheap to keep),
+`infisical/infisical-bootstrap-secret`. Everything else on this cluster (ArgoCD's own
+admin/redis secrets, every component's TLS webhook certs) auto-regenerates on
+reinstall and was deliberately not backed up.
+
 ## Status
 
 Bootstrapped 2026-08-15 and **live-verified end-to-end the same day**: both the
@@ -73,3 +131,17 @@ memory for the session detail. One real bug found live: the cluster's shared
 `app.yaml` needed `managementPolicies` excluding `"Delete"`, not
 `spec.deletionPolicy: Orphan` as originally planned - `provider-upjet-github`
 v0.19.1's `RepositoryFile` CRD has no such field.
+
+**2026-08-18: full delete-and-rebuild-from-git, real not theoretical.** Triggered by
+adding ArgoCD health checks for Crossplane XRs (see `gitops-cluster-dev`'s own
+`01-argocd-platform/README.md`) surfacing that this cluster's ArgoCD was never
+GitOps-managed at all - reused live state, not reproducible from this repo alone.
+Fixed by vendoring `01-argocd-platform/install.yaml` (see above) rather than just
+patching the old imperative instance, then proving it: `checkout-api-prod` had no live
+`Rollout`/`Deployment` at deletion time (`WorkloadDeployed=False/NoImageYet` on its
+`ApplicationEnvironment` XR the whole time - a scaffold, not a running service, so
+"rebuild and it reinstalls" mostly means "the scaffold reappears," not zero-downtime
+recovery of live traffic). Real secrets backed up first (see "Credentials" above);
+`deadlock-repro`/`env-pattern-verify`/`usage-guard-verify` XR-request Applications
+(leftover test scaffolding from past investigation sessions, not real tenants) were
+allowed to go with the old cluster rather than migrated forward.
