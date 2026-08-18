@@ -1,11 +1,21 @@
-# Pins idp-service-catalog to the same tag gitops-cluster-dev uses (v0.3.0) but,
+# Pins idp-service-catalog to the same tag gitops-cluster-dev uses but,
 # unlike that repo's own Application, deliberately SCOPED here - see
 # idp/docs/service-catalog-design.md §0 "Where Crossplane runs across a multi-
-# cluster fleet". Explicit file list, not a wildcard: xrds/slo.yaml +
-# compositions/slo/composition.yaml only. NodeJSApplication/ApplicationEnvironment
-# stay dev-only (Bootstrap-tier centralizes permanently, regardless of fleet size -
-# they're pure provider-github writers, no locality requirement at all), so they're
-# deliberately excluded here rather than installed and simply unused.
+# cluster fleet". Explicit file list, not a wildcard. NodeJSApplication/
+# ApplicationEnvironment stay dev-only (Bootstrap-tier centralizes permanently,
+# regardless of fleet size - they're pure provider-github writers, no locality
+# requirement at all), so they're deliberately excluded here rather than installed
+# and simply unused.
+#
+# SecretStore added 2026-08-17 (Item 8's multi-cluster revision) - the OPPOSITE
+# locality reasoning from NodeJSApplication/ApplicationEnvironment: it composes a
+# real ClusterSecretStore (via a wrapped provider-kubernetes Object) directly on
+# whichever cluster its own Composition runs on, so - like SLO - it has to be
+# installed on every cluster that hosts real app deployments, not centralized on
+# kind-dev. Needs its own InfisicalProject/InfisicalEnvironment CRDs too
+# (operators/infisical-secretstore-operator/crds/ - not included here, that
+# directory isn't a Crossplane XRD/Composition at all; installed on this cluster
+# separately, see 10-crds-operators/infisical-secretstore-operator/application.yaml).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -18,11 +28,11 @@ spec:
   project: default
   source:
     repoURL: https://github.com/jfillman/idp-service-catalog.git
-    targetRevision: v0.3.1
+    targetRevision: v0.3.17
     path: .
     directory:
       recurse: true
-      include: "{xrds/slo.yaml,compositions/slo/composition.yaml}"
+      include: "{xrds/slo.yaml,compositions/slo/composition.yaml,xrds/secretstore.yaml,compositions/secretstore/composition.yaml}"
   destination:
     server: https://kubernetes.default.svc
     namespace: crossplane-system

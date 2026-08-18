@@ -1,0 +1,35 @@
+# infisical-secretstore-operator on kind-prod - mirrors gitops-cluster-dev's own
+# Application of the same name (see that file's own header for the full "why").
+# No Infisical instance runs on THIS cluster (shared platform infra, kind-dev only)
+# - this Deployment talks to it over the network instead (see deployment.yaml's own
+# header). Was applied imperatively (kubectl apply) during Item 8's multi-cluster
+# revision build/live-verify pass - this Application is what makes that real GitOps
+# state instead, matching every other piece of that same build.
+#
+# Image is NOT yet pushed to a real registry - same real gap as kind-dev's own copy,
+# doubled now (see this operator's own README, "Known gaps" - each cluster's copy
+# needs rebuilding/reloading by hand on every change until a real CI/registry
+# pipeline exists).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infisical-secretstore-operator
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: 10-crds-operators/infisical-secretstore-operator
+    directory:
+      exclude: "{application.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infisical
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
