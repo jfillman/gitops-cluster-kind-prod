@@ -27,7 +27,7 @@ tenant/XR volume has never justified it, and this rebuild didn't change that cal
 **Bootstrap steps, in order** (same shape as `gitops-cluster-dev`'s own):
 
 ```
-kind create cluster --name prod --config <kind-config with disableDefaultCNI: true, podSubnet 192.168.0.0/16>
+kind create cluster --name prod --config hack/kind-config.yaml
 # install Calico (matching kind-dev's pinned v3.29.1) before anything else touches the cluster
 kubectl create namespace argocd
 kubectl apply --server-side -n argocd -f 01-argocd-platform/install.yaml

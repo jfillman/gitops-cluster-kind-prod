@@ -1,0 +1,24 @@
+# hack/kind-config.yaml
+#
+# kind-prod's own cluster config, used by `kind create cluster --name prod --config
+# hack/kind-config.yaml`. disableDefaultCNI: true + Calico (installed as a separate
+# step right after cluster creation, before anything else touches the cluster) replace
+# kind's default kindnet, which silently ignores every NetworkPolicy in this repo - see
+# README.md's "kindnet -> Calico" section for the full story (same fix
+# gitops-cluster-dev applied to kind-dev 2026-08-13, and the same podSubnet
+# platform-cicd's own hack/kind-config.yaml uses for its kind-observe/kind-dev-style
+# clusters - kept identical rather than picking a new range, since each cluster's pod
+# CIDR is only ever routed inside that cluster, so reusing the same range across
+# clusters on the shared podman "kind" bridge network causes no conflict).
+#
+# Single control-plane node, no workers - matches this cluster's actual topology
+# before the 2026-08-18 rebuild (kind-prod has only ever run `prod-control-plane`),
+# not platform-cicd's own 3-node template.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: prod
+networking:
+  disableDefaultCNI: true
+  podSubnet: "192.168.0.0/16"
+nodes:
+  - role: control-plane
