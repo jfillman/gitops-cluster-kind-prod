@@ -24,14 +24,15 @@
 # Two secrets this Application does NOT create (cluster-admin/user action, never
 # templated here - see feedback_credential_handling in memory: credentials are never
 # pasted into a commit or a chat transcript):
-#   - holmes-llm-keys (ANTHROPIC_API_KEY) - Holmes' own standing LLM credential.
-#   - github-mcp-token (token) - a GitHub PAT with write access to gitops-checkout-api
-#     (and any other gitops-<app> repo this cluster's diagnosis Jobs might target),
-#     used by Holmes' own github MCP addon to open fix PRs. Deliberately a plain PAT,
-#     not this platform's GitHub App credential (provider-github-creds/
-#     github-app-creds on kind-dev) - different shape (app-installation vs PAT) and a
-#     different concern (Holmes' own MCP toolset vs. Crossplane's provider-github),
-#     not worth conflating for a first per-cluster install.
+#   - holmesgpt-secrets (key ANTHROPIC_API_KEY) - Holmes' own standing LLM credential.
+#   - github-mcp-token (key token) - a GitHub PAT with write access to
+#     gitops-checkout-api (and any other gitops-<app> repo this cluster's diagnosis
+#     Jobs might target), used by Holmes' own github MCP addon to open fix PRs.
+#     Deliberately a plain PAT, not this platform's GitHub App credential
+#     (provider-github-creds/github-app-creds on kind-dev) - different shape
+#     (app-installation vs PAT) and a different concern (Holmes' own MCP toolset vs.
+#     Crossplane's provider-github), not worth conflating for a first per-cluster
+#     install.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -61,7 +62,7 @@ spec:
           velero: false
           externalSecrets: false
         extraEnvVarsSecrets:
-          - holmes-llm-keys
+          - holmesgpt-secrets
         toolsets:
           kubernetes/core:
             enabled: true
