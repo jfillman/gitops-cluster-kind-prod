@@ -72,14 +72,20 @@ spec:
         # same one extraEnvVarsSecrets already mounts, just needs to be wired to
         # an explicit model entry.
         #
-        # Second real gotcha, caught live right after the first: "claude-3-5-
-        # sonnet-latest" is a litellm-only alias, not a real Anthropic API model ID
-        # - the direct Anthropic API (which is what this hits, no separate gateway)
-        # 404'd on it ("not_found_error: model: claude-3-5-sonnet-latest"). Pinned
-        # to a real, dated model ID instead.
+        # Second and third real gotchas, both hit live in sequence: "claude-3-5-
+        # sonnet-latest" is a litellm-only alias, not a real Anthropic API model ID -
+        # the direct Anthropic API (no separate gateway involved) 404'd on it
+        # ("not_found_error: model: claude-3-5-sonnet-latest"). Switched to a real,
+        # dated snapshot (claude-3-5-sonnet-20241022) next - same 404, this one
+        # genuinely real but ~2 years old by 2026-08 and evidently retired from
+        # Anthropic's catalog by now (litellm itself doesn't validate/reject model
+        # strings for the direct anthropic/ provider - confirmed from the traceback,
+        # it passes them straight through to POST api.anthropic.com/v1/messages,
+        # which is what actually 404'd both times). Pinned to the current model
+        # family instead (see this session's own environment: Claude 5).
         modelList:
           claude:
-            model: anthropic/claude-3-5-sonnet-20241022
+            model: anthropic/claude-sonnet-5
             api_key: envRef:ANTHROPIC_API_KEY
         toolsets:
           kubernetes/core:
