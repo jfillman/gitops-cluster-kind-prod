@@ -15,11 +15,25 @@
 # own <release>-holmes Service naming convention, confirmed live via `helm template`
 # before writing this file - not guessed from the chart's docs.
 #
-# k8sRBAC: true (chart default is false) - Holmes needs its own live cluster read
-# access to actually investigate a Degraded Rollout (pods, events, logs, ...), same
-# reasoning the original Phase 2 install already established. crdPermissions.argo/
+# k8sRBAC deliberately NOT set (stays at the chart's own default, false) - a real,
+# confusing gotcha caught live: this flag's name suggests "grant k8s RBAC," but
+# reading templates/toolset-config.yaml + templates/holmesgpt-service-account.yaml
+# directly shows the opposite - k8sRBAC: true is for an entirely separate, unrelated
+# MCP-based Kubernetes mechanism (templates/mcp-servers/kubernetes{,-remediation}/,
+# never configured here), and setting it disables BOTH the legacy in-process
+# kubernetes/core|logs toolsets (an explicit $rbacOverrides block forces them to
+# enabled: false, silently overriding the toolsets: block below) AND the broad
+# ClusterRole/ClusterRoleBinding (pods/logs/events/argoproj.io rollouts+analysisruns/
+# etc - exactly what this mechanism needs) that only renders `{{- if and
+# .Values.createServiceAccount (not .Values.k8sRBAC) }}`. First live diagnosis run
+# had zero k8s access as a result (confirmed in Holmes' own logs and its analysis
+# text, which correctly self-reported the limitation) - it still produced a correct
+# diagnosis from GitHub evidence alone, but that's not something to rely on for an
+# app-logic bug rather than a GitOps config one. Leaving k8sRBAC unset restores both
+# the toolsets AND the ClusterRole this mechanism actually needs. crdPermissions.argo/
 # crossplane stay at their chart defaults (true) - directly relevant to what this
-# cluster's own AI-triage mechanism watches.
+# cluster's own AI-triage mechanism watches, and only take effect via that same
+# ClusterRole.
 #
 # Two secrets this Application does NOT create (cluster-admin/user action, never
 # templated here - see feedback_credential_handling in memory: credentials are never
@@ -50,7 +64,6 @@ spec:
     helm:
       releaseName: holmesgpt
       valuesObject:
-        k8sRBAC: true
         crdPermissions:
           argo: true
           flux: false
