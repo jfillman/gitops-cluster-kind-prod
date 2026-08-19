@@ -63,6 +63,18 @@ spec:
           externalSecrets: false
         extraEnvVarsSecrets:
           - holmesgpt-secrets
+        # Real gotcha, caught live: an ANTHROPIC_API_KEY env var alone (via
+        # extraEnvVarsSecrets above) does NOT register a usable model - Holmes'
+        # own /api/model reported only the built-in "Robusta" hosted model until
+        # this modelList entry was added. envRef:ANTHROPIC_API_KEY is the chart's
+        # own documented sugar (rewritten at render time to litellm's
+        # {{ env.ANTHROPIC_API_KEY }} templating) - the underlying Secret is the
+        # same one extraEnvVarsSecrets already mounts, just needs to be wired to
+        # an explicit model entry.
+        modelList:
+          claude:
+            model: anthropic/claude-3-5-sonnet-latest
+            api_key: envRef:ANTHROPIC_API_KEY
         toolsets:
           kubernetes/core:
             enabled: true
