@@ -1,7 +1,6 @@
-# Scoped to what the Attached-tier catalog (SLO today) actually needs - see
-# providers.yaml's own header for the reasoning. No function-rollout-watcher (AI-
-# triage isn't built for this deployment model yet - service-catalog-design.md §0),
-# no function-patch-and-transform (nothing in this catalog uses it).
+# Scoped to what the Attached-tier catalog (SLO, RolloutWatch) actually needs - see
+# providers.yaml's own header for the reasoning. No function-patch-and-transform
+# (nothing in this catalog uses it).
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
@@ -21,3 +20,18 @@ metadata:
     platform.io/subcomponent: crds-operators
 spec:
   package: xpkg.crossplane.io/crossplane-contrib/function-go-templating:v0.12.3
+---
+# The custom function from the ai-rollout prototype (github.com/jfillman), reused - see
+# idp-service-catalog's functions/function-rollout-watcher/README.md for its full
+# history. No packagePullSecrets needed - the GHCR package is public (confirmed live:
+# kind-dev runs the same package with no such secret referenced).
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-rollout-watcher
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: crds-operators
+    platform.io/origin: ai-rollout
+spec:
+  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.0

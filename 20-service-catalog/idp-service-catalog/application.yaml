@@ -16,6 +16,12 @@
 # (operators/infisical-secretstore-operator/crds/ - not included here, that
 # directory isn't a Crossplane XRD/Composition at all; installed on this cluster
 # separately, see 10-crds-operators/infisical-secretstore-operator/application.yaml).
+#
+# RolloutWatch added 2026-08-18 (AI-triage redesign) - same locality reasoning as
+# SecretStore: function-rollout-watcher reads the live, Helm-created Rollout via a
+# same-cluster extra-resources lookup, so it has to run wherever the app actually
+# is, not centralized on kind-dev. See idp-service-catalog's
+# functions/function-rollout-watcher/README.md for the mechanism.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -28,11 +34,11 @@ spec:
   project: default
   source:
     repoURL: https://github.com/jfillman/idp-service-catalog.git
-    targetRevision: v0.3.24
+    targetRevision: v0.3.25
     path: .
     directory:
       recurse: true
-      include: "{xrds/slo.yaml,compositions/slo/composition.yaml,xrds/secretstore.yaml,compositions/secretstore/composition.yaml}"
+      include: "{xrds/slo.yaml,compositions/slo/composition.yaml,xrds/secretstore.yaml,compositions/secretstore/composition.yaml,xrds/rolloutwatch.yaml,compositions/rolloutwatch/composition.yaml}"
   destination:
     server: https://kubernetes.default.svc
     namespace: crossplane-system

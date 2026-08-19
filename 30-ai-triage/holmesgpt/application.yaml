@@ -1,0 +1,103 @@
+# HolmesGPT, installed per cluster (2026-08-18, AI-triage redesign) - resolves the
+# "explicitly not resolved" locality question from the multi-cluster architecture
+# session (idp_session_multicluster_architecture): Holmes needs live in-cluster access
+# to actually diagnose anything, so it runs where the workload does, same reasoning
+# that already kept AppProject/SecretStore per-cluster rather than shared. Not a
+# subchart/dependency of anything else - own top-level directory (30-ai-triage,
+# between service-catalog and observability) since more agentic workflows are
+# expected here over time, not just this one.
+#
+# Version pinned to v0.38.0 - same version the original Phase 2 kind-dev proof used
+# (idp_session_phase2_holmesgpt), for a clean before/after comparison if one's ever
+# needed. Release name is exactly "holmesgpt" deliberately -
+# diagnosis-holmes-dispatch's own HOLMES_URL default
+# (http://holmesgpt-holmes.holmesgpt.svc.cluster.local/api/chat) assumes the chart's
+# own <release>-holmes Service naming convention, confirmed live via `helm template`
+# before writing this file - not guessed from the chart's docs.
+#
+# k8sRBAC: true (chart default is false) - Holmes needs its own live cluster read
+# access to actually investigate a Degraded Rollout (pods, events, logs, ...), same
+# reasoning the original Phase 2 install already established. crdPermissions.argo/
+# crossplane stay at their chart defaults (true) - directly relevant to what this
+# cluster's own AI-triage mechanism watches.
+#
+# Two secrets this Application does NOT create (cluster-admin/user action, never
+# templated here - see feedback_credential_handling in memory: credentials are never
+# pasted into a commit or a chat transcript):
+#   - holmes-llm-keys (ANTHROPIC_API_KEY) - Holmes' own standing LLM credential.
+#   - github-mcp-token (token) - a GitHub PAT with write access to gitops-checkout-api
+#     (and any other gitops-<app> repo this cluster's diagnosis Jobs might target),
+#     used by Holmes' own github MCP addon to open fix PRs. Deliberately a plain PAT,
+#     not this platform's GitHub App credential (provider-github-creds/
+#     github-app-creds on kind-dev) - different shape (app-installation vs PAT) and a
+#     different concern (Holmes' own MCP toolset vs. Crossplane's provider-github),
+#     not worth conflating for a first per-cluster install.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: holmesgpt
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: ai-triage
+spec:
+  project: default
+  source:
+    repoURL: https://robusta-charts.storage.googleapis.com
+    chart: holmes
+    targetRevision: 0.38.0
+    helm:
+      releaseName: holmesgpt
+      valuesObject:
+        k8sRBAC: true
+        crdPermissions:
+          argo: true
+          flux: false
+          kafka: false
+          keda: false
+          crossplane: true
+          istio: false
+          gatewayApi: false
+          velero: false
+          externalSecrets: false
+        extraEnvVarsSecrets:
+          - holmes-llm-keys
+        toolsets:
+          kubernetes/core:
+            enabled: true
+          kubernetes/logs:
+            enabled: true
+          robusta:
+            enabled: false
+          internet:
+            enabled: true
+          prometheus/metrics:
+            enabled: true
+          skills:
+            enabled: true
+          connectivity_check:
+            enabled: true
+          bash:
+            enabled: true
+            config:
+              builtin_allowlist: "extended"
+        mcpAddons:
+          github:
+            enabled: true
+            auth:
+              secretName: github-mcp-token
+              secretKey: token
+            config:
+              toolsets: "repos,issues,pull_requests,actions,context"
+        resources:
+          requests:
+            cpu: 250m
+            memory: 1024Mi
+          limits:
+            memory: 2048Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: holmesgpt
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

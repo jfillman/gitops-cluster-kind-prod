@@ -1,10 +1,15 @@
 # Crossplane's own controller ServiceAccount has no built-in RBAC for native
 # resource kinds a Composition composes directly - see
 # gitops-cluster-dev/10-crds-operators/crossplane/native-resources-rbac.yaml's own
-# header for the full explanation. Scoped to just what SLO and (added for Item 8's
-# multi-cluster revision) the SecretStore XRD need here - no argoproj.io/batch/
-# monitoring.coreos.com grants, since this cluster doesn't run AI-triage or the
-# hand-rolled PrometheusRule-generating SLO revision.
+# header for the full explanation. Scoped to what SLO, SecretStore (Item 8's
+# multi-cluster revision), and (2026-08-18, AI-triage redesign - RolloutWatch)
+# function-rollout-watcher need here.
+#
+# argoproj.io/Rollout is read-only (get/list/watch) - the redesigned
+# function-rollout-watcher never composes a Rollout anymore (idp-application's Helm
+# chart does), it only reads the live one via a Crossplane extra-resources
+# requirement. batch/Job stays full CRUD - the diagnosis Job the function dispatches
+# on a Degraded Rollout is still a real composed resource.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -20,4 +25,10 @@ rules:
   - apiGroups: ["secrets.idp.io"]
     resources:
       ["infisicalprojects", "infisicalprojects/status", "infisicalenvironments", "infisicalenvironments/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts", "rollouts/status"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "jobs/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
