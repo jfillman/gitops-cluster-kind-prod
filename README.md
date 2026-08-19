@@ -137,6 +137,18 @@ design the moment checkout-api's real workload actually deploys - but don't expe
 them to be doing anything today either. The "manual by design" step (`kubectl create
 secret` with the real GHCR credential, in `platform-secrets`) has never been done here.
 
+**2026-08-19 update: the mechanism above is retired, not just finally exercised.**
+`platform-secret-store` is now `provider.infisical`, not the `kubernetes` provider this
+section describes (`10-crds-operators/external-secrets/cluster-secret-store.yaml`,
+`platform-cicd`'s secrets migration) - `registry-credentials` is disseminated via a
+`ClusterExternalSecret` (`registry-credentials-cluster-external-secret.yaml`, this same
+directory) to every namespace labeled `platform.io/managed-secrets: "true"`
+automatically, not `idp-application`'s own opt-in `registryCredentials.enabled` (removed
+from that chart entirely - every app's ServiceAccount now references
+`registry-credentials` unconditionally). The manually-applied `ghcr-pull-secret` this
+section flagged as a stopgap should be removed once the new ClusterExternalSecret is
+confirmed live on this cluster - see `platform-cicd/docs/admin/secrets-management.md`.
+
 **Not deliberately scoped out anymore - closed 2026-08-18, all in one day.** Everything
 below was either always-missing (never installed here at all, not a scoping decision)
 or a narrower gap this same day's work closed for real:

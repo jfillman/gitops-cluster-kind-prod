@@ -72,6 +72,15 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+        # Lets the registry-credentials ClusterExternalSecret
+        # (10-crds-operators/external-secrets/registry-credentials-cluster-external-
+        # secret.yaml) select this namespace automatically - mirrors platform-cicd's
+        # own tenant-onboarding-applicationset.yaml on kind-dev. Re-applied every sync
+        # (only takes effect alongside CreateNamespace=true), so it also lands on
+        # already-existing namespaces.
+        managedNamespaceMetadata:
+          labels:
+            platform.io/managed-secrets: "true"
   templatePatch: |
     {{- if hasKey . "configMapGenerator" }}
     {{- if .configMapGenerator }}
