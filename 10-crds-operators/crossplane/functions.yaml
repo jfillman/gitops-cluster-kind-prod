@@ -34,4 +34,4 @@ metadata:
     platform.io/subcomponent: crds-operators
     platform.io/origin: ai-rollout
 spec:
-  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.0
+  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.1
