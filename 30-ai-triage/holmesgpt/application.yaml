@@ -71,9 +71,15 @@ spec:
         # {{ env.ANTHROPIC_API_KEY }} templating) - the underlying Secret is the
         # same one extraEnvVarsSecrets already mounts, just needs to be wired to
         # an explicit model entry.
+        #
+        # Second real gotcha, caught live right after the first: "claude-3-5-
+        # sonnet-latest" is a litellm-only alias, not a real Anthropic API model ID
+        # - the direct Anthropic API (which is what this hits, no separate gateway)
+        # 404'd on it ("not_found_error: model: claude-3-5-sonnet-latest"). Pinned
+        # to a real, dated model ID instead.
         modelList:
           claude:
-            model: anthropic/claude-3-5-sonnet-latest
+            model: anthropic/claude-3-5-sonnet-20241022
             api_key: envRef:ANTHROPIC_API_KEY
         toolsets:
           kubernetes/core:
