@@ -240,6 +240,20 @@ spec:
                   health_status.status = "Progressing"
                   health_status.message = "No Ready condition yet"
                   return health_status
+        server:
+          # Argo Rollouts UI extension: renders the canary/blue-green step timeline
+          # inside an Application's resource tree in the web UI. v0.4.0 (not v0.3.7,
+          # which gitops-cluster-dev/gitops-cluster-template pin) because this instance
+          # runs chart 10.3.2 / appVersion v3.5.0, whose UI is on React 19 - v0.4.0 is
+          # the first release that externalizes react-dom/react for React 19
+          # compatibility; v0.3.x targets the React 18 UI those older instances run.
+          extensions:
+            enabled: true
+            extensionList:
+              - name: rollout-extension
+                env:
+                  - name: EXTENSION_URL
+                    value: https://github.com/argoproj-labs/rollout-extension/releases/download/v0.4.0/extension.tar
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd-apps
