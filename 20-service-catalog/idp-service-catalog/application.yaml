@@ -45,7 +45,12 @@ spec:
     # include) - the rest of the intervening range (NodeJSApplication/
     # ApplicationEnvironment changes) falls outside this Application's
     # explicit include list below and has no effect here.
-    targetRevision: v0.3.39
+    # 2026-08-24: bumped from v0.3.39 to v0.3.41 (v0.3.40 is an unrelated
+    # idp-application chart tag on this shared repo). The IP flipped back to
+    # 10.89.0.2 after a further kind-dev restart - not monotonic, don't
+    # assume a higher IP is newer. v0.3.39..v0.3.41's only xrds/compositions/
+    # diff is that same IP string, twice.
+    targetRevision: v0.3.41
     path: .
     directory:
       recurse: true
