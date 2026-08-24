@@ -25,6 +25,14 @@ spec:
 # idp-service-catalog's functions/function-rollout-watcher/README.md for its full
 # history. No packagePullSecrets needed - the GHCR package is public (confirmed live:
 # kind-dev runs the same package with no such secret referenced).
+#
+# 2026-08-24: bumped to v0.2.4, and corrected this file's pin from v0.2.2 to
+# match reality - the live kind-prod Function resource was already running
+# v0.2.3 (patched imperatively during that fix's live-verification session,
+# never committed back here). v0.2.4 fixes RolloutWatch XRs staying
+# Synced=False/Ready=False forever after the Rollout they watch recovers -
+# see idp-service-catalog/functions/function-rollout-watcher/README.md's own
+# changelog.
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
@@ -34,4 +42,4 @@ metadata:
     platform.io/subcomponent: crds-operators
     platform.io/origin: ai-rollout
 spec:
-  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.2
+  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.4
