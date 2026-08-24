@@ -34,7 +34,18 @@ spec:
   project: default
   source:
     repoURL: https://github.com/jfillman/idp-service-catalog.git
-    targetRevision: v0.3.34
+    # 2026-08-24: bumped from v0.3.34 to v0.3.39. Fixes the SecretStore
+    # Composition's hardcoded Infisical NodePort IP - stale at 10.89.0.2 since
+    # kind-dev's 2026-08-23/24 rebuild moved the node's real podman-network
+    # address to 10.89.0.5, breaking every SecretStore this Composition
+    # renders on this cluster (live-verified: `unable to create client` on
+    # all 4 kind-prod SecretStore/ClusterSecretStore objects). v0.3.34..
+    # v0.3.39 also picks up a real RolloutWatch fix (bf2c658, in scope via
+    # this Application's own compositions/rolloutwatch/composition.yaml
+    # include) - the rest of the intervening range (NodeJSApplication/
+    # ApplicationEnvironment changes) falls outside this Application's
+    # explicit include list below and has no effect here.
+    targetRevision: v0.3.39
     path: .
     directory:
       recurse: true

@@ -11,8 +11,12 @@
 #
 # INFISICAL_API_URL: the NodePort address (gitops-cluster-dev/10-crds-operators/
 # infisical-secretstore-operator/infisical-nodeport.yaml) - confirmed live reachable
-# from a kind-prod pod, not assumed (a real 200 from /api/status). Local-kind-sandbox
-# specific, see that Service's own header for the real-deployment caveat. NO trailing
+# from a kind-prod pod, not assumed (a real 200 from /api/status). IP is
+# dev-control-plane's own podman-network address, NOT stable across a kind-dev
+# recreate - updated 2026-08-24 (10.89.0.2 -> 10.89.0.5) after kind-dev's
+# 2026-08-23/24 rebuild changed it, breaking this operator's own connectivity
+# until caught live. Local-kind-sandbox specific, see that Service's own header
+# for the real-deployment caveat. NO trailing
 # /api - main.py's own _req() already prefixes every call's path with /api/v1/... ;
 # a real bug caught live on this exact cluster (a double /api/api/v1/... 404) before
 # fixing this to match kind-dev's own Deployment's identical (no-/api) convention.
@@ -58,7 +62,7 @@ spec:
             - name: USER
               value: infisical-secretstore-operator
             - name: INFISICAL_API_URL
-              value: http://10.89.0.2:31800
+              value: http://10.89.0.5:31800
             - name: INFISICAL_ORG_ID
               value: "9144c116-d1eb-4cea-bac9-9b5272035ea7"
             - name: INFISICAL_ADMIN_TOKEN
