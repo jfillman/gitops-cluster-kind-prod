@@ -67,7 +67,7 @@ spec:
             - name: INFISICAL_API_URL
               value: http://10.89.0.2:31800
             - name: INFISICAL_ORG_ID
-              value: "9144c116-d1eb-4cea-bac9-9b5272035ea7"
+              value: "820c617c-71a5-45e4-bc19-863a4f88edf8"
             - name: INFISICAL_ADMIN_TOKEN
               valueFrom:
                 secretKeyRef:
