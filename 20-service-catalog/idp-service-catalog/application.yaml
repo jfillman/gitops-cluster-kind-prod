@@ -50,7 +50,13 @@ spec:
     # 10.89.0.2 after a further kind-dev restart - not monotonic, don't
     # assume a higher IP is newer. v0.3.39..v0.3.41's only xrds/compositions/
     # diff is that same IP string, twice.
-    targetRevision: v0.3.41
+    # 2026-08-25: bumped from v0.3.41 to v0.3.48. kind-dev's address moved
+    # again, 10.89.0.2 -> 10.89.0.3, after the podman machine was stopped and
+    # restarted. v0.3.41..v0.3.48's only diff within this Application's
+    # include list (slo/secretstore/rolloutwatch) is that same IP string,
+    # twice (confirmed via `git diff --stat`) - clean, same bar the prior
+    # bumps above used.
+    targetRevision: v0.3.48
     path: .
     directory:
       recurse: true
