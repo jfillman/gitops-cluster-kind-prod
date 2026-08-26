@@ -59,8 +59,8 @@ spec:
       serviceAccountName: infisical-secretstore-operator
       containers:
         - name: operator
-          image: localhost/infisical-secretstore-operator:dev
-          imagePullPolicy: Never
+          image: ghcr.io/jfillman/infisical-secretstore-operator:dev
+          imagePullPolicy: IfNotPresent
           env:
             - name: USER
               value: infisical-secretstore-operator
