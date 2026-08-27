@@ -56,7 +56,11 @@ spec:
     # include list (slo/secretstore/rolloutwatch) is that same IP string,
     # twice (confirmed via `git diff --stat`) - clean, same bar the prior
     # bumps above used.
-    targetRevision: v0.3.48
+    # 2026-08-27: bumped from v0.3.48 to v0.3.49 - annotates the 5 Bootstrap-tier
+    # XRDs with terasky.backstage.io/add-to-catalog + target-path for Backstage
+    # catalog ingestion (idp/docs/backstage-design.md). No functional change to
+    # this Application's own synced XRDs' behavior.
+    targetRevision: v0.3.49
     path: .
     directory:
       recurse: true
