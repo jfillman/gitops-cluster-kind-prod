@@ -1,0 +1,70 @@
+# Identical shape to gitops-cluster-dev's own
+# 00-bootstrap/backstage-ingestor-rbac/rbac.yaml - see that file's header for the full
+# rationale.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backstage-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backstage-ingestor
+  namespace: backstage-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backstage-ingestor-token
+  namespace: backstage-system
+  annotations:
+    kubernetes.io/service-account.name: backstage-ingestor
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-crd-viewer
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-crd-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-crd-viewer
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-crossplane-browse
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crossplane-browse
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage-system

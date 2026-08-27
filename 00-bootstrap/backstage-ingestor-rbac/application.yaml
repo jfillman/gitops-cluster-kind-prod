@@ -1,0 +1,35 @@
+# Read-only RBAC on this cluster for the kubernetes-ingestor plugin running on
+# kind-man's Backstage instance (idp/docs/backstage-design.md "Catalog ingestion",
+# Phase 2: kind-dev/kind-prod). Same shape as gitops-cluster-dev's own
+# 00-bootstrap/backstage-ingestor-rbac/ - see that directory's README for the full
+# rationale and the manual token-delivery steps, identical here.
+#
+# This repo has no pre-existing 00-bootstrap/ tier (unlike gitops-cluster-template and
+# gitops-cluster-dev) - this is the first thing to land in one. Matches the root
+# app-of-apps' required filename (**/application.yaml glob, root-app-of-apps.yaml) -
+# after this merges, that root Application needs a manual hard-refresh to pick it up
+# (documented gotcha, same file's own header comment).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backstage-ingestor-rbac
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: backstage-ingestor-rbac
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: 00-bootstrap/backstage-ingestor-rbac
+    directory:
+      exclude: "application.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backstage-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
