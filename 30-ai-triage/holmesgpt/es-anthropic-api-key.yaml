@@ -16,8 +16,8 @@ spec:
     creationPolicy: Owner
     template:
       data:
-        ANTHROPIC_API_KEY: "{{ .anthropic-api-key }}"
+        ANTHROPIC_API_KEY: "{{ .anthropicApiKey }}"
   data:
-    - secretKey: anthropic-api-key
+    - secretKey: anthropicApiKey
       remoteRef:
         key: anthropic-api-key
