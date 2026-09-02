@@ -19,6 +19,20 @@
 # present to platform-cicd's argocd-outcome-relay on kind-dev) - both planted by hand
 # once, same "manual by design" posture as every other credential's ultimate source in
 # this platform.
+#
+# slug/projectName: platform-cicd-kind-prod-v2 (was platform-cicd-kind-prod) - live on
+# kiac-prod 2026-09-02, this InfisicalProject was permanently Failed: create_project()
+# in main.py's own comment already diagnoses this class of bug (an operator's
+# on_delete() DELETEs the Infisical project for a CR that's later recreated with a new
+# k8s uid; Infisical's DELETE doesn't free the slug's uniqueness constraint). Refined
+# live here: a direct GET /api/v1/projects/slug/platform-cicd-kind-prod returned 403
+# "not a member" (not 404) - the old project genuinely still exists server-side on the
+# shared kind-dev/kiac-dev Infisical instance, just invisible to this admin identity's
+# own (membership-scoped) GET /api/v1/projects listing. This CR never once succeeded in
+# creating anything, so nothing is lost by moving to a fresh slug rather than purging
+# the old project directly against Infisical (a real, consequential action against
+# shared instance data, left to a human if ever needed). cluster-secret-store.yaml
+# (this directory) must carry the same projectSlug.
 apiVersion: secrets.idp.io/v1alpha1
 kind: InfisicalProject
 metadata:
@@ -27,8 +41,8 @@ metadata:
   labels:
     platform.io/subcomponent: "secretstore"
 spec:
-  projectName: platform-cicd-kind-prod
-  slug: platform-cicd-kind-prod
+  projectName: platform-cicd-kind-prod-v2
+  slug: platform-cicd-kind-prod-v2
   environmentSlug: shared
   credentialsSecretName: platform-cicd-infisical-creds
   authMethod: universal
