@@ -190,6 +190,20 @@ every app's own `gitops-<app-name>` repo is private - confirmed live the same wa
 ArgoCD instance needs its own copy; this doesn't carry over from `kind-dev`
 automatically.
 
+**2026-09-01 update: superseded by an ESO-managed, GitOps-tracked repo-creds Secret,
+same mechanism `gitops-cluster-dev`/`gitops-cluster-kind-man` already carry.**
+`01-argocd-platform/repo-creds/` and `02-argocd-apps/repo-creds/` each render a
+`github-app-repo-creds` `Secret` (same `repo-creds` shape, same url-prefix) via an
+`ExternalSecret` sourced from `platform-secret-store` - GitHub App auth
+(`githubAppID`/`githubAppInstallationID`/`githubAppPrivateKey`, Infisical-stored),
+not the PAT this section describes. This still doesn't remove the chicken-and-egg
+bootstrap requirement below (ESO itself is only installed as a child of
+`root-app-of-apps`, so a from-scratch cluster still needs a manual repo-creds Secret
+to get that first sync to happen at all) - but once bootstrapped, the ESO-managed
+Secret is what's live day-to-day, and `argocd-repo-creds-jfillman` can be deleted
+once that's confirmed synced (`kubectl get secret github-app-repo-creds -n argocd`
+and `-n argocd-apps`).
+
 **Real Secrets on this cluster, none GitOps-tracked, none ever printed/committed**
 (current list as of the 2026-08-18 rebuild - back these up before any future
 deliberate teardown, same as this one):
