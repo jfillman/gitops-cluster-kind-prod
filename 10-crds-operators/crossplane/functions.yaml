@@ -26,6 +26,18 @@ spec:
 # history. No packagePullSecrets needed - the GHCR package is public (confirmed live:
 # kind-dev runs the same package with no such secret referenced).
 #
+# 2026-09-02: bumped to v0.2.5 - v0.2.4 (and everything before it) was a
+# genuine single-platform (amd64-only) OCI manifest, confirmed live via the
+# GHCR API: built and pushed by hand at some point, since this function's own
+# CI workflow was never actually discoverable by GitHub Actions (nested under
+# a monorepo subdirectory, not the repo root's .github/workflows/). Crashed
+# with "exec format error" on kiac-prod's real arm64 nodes - same bug hit and
+# fixed on kiac-dev the same day, see that cluster's gitops-cluster-dev
+# functions.yaml for the full story. Fixed by adding a real top-level
+# idp-service-catalog/.github/workflows/function-rollout-watcher-ci.yaml. v0.2.5
+# is a genuine multi-platform OCI index (linux/amd64 + linux/arm64), confirmed
+# live against the GHCR manifest API - source is unchanged from v0.2.4.
+#
 # 2026-08-24: bumped to v0.2.4, and corrected this file's pin from v0.2.2 to
 # match reality - the live kind-prod Function resource was already running
 # v0.2.3 (patched imperatively during that fix's live-verification session,
@@ -42,4 +54,4 @@ metadata:
     platform.io/subcomponent: crds-operators
     platform.io/origin: ai-rollout
 spec:
-  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.4
+  package: ghcr.io/jfillman/function-rollout-watcher:v0.2.5
