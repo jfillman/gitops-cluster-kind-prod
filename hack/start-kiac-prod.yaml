@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# start up prod cluster with kaic
+ kiac create cluster --name prod --workers 0 --cni cilium --kernel full --cpus 2 --cp-memory 10G --gateway
+ 
