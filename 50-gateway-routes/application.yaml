@@ -1,0 +1,33 @@
+# Gateway API HTTPRoutes for every UI-bearing Service on this cluster, attached to
+# the kiac-installed Gateway (`kiac`, ns kiac-gateway, GatewayClass traefik) rather
+# than classic Ingress. Each HTTPRoute lives in the same namespace as its backend
+# Service (Gateway API requires same-namespace backendRefs without a ReferenceGrant),
+# so this Application is deliberately multi-namespace - every object below sets its
+# own metadata.namespace explicitly, this Application's own destination.namespace is
+# just the schema-required fallback. Mirrors gitops-cluster-dev's own
+# 60-gateway-routes/ - same Service names, .prod.kiac.local hostnames instead of
+# .dev.kiac.local so both clusters' routes resolve from one /etc/hosts at once.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-routes
+  namespace: argocd
+  labels:
+    platform.io/component: cluster-config
+    platform.io/subcomponent: gateway-routes
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/jfillman/gitops-cluster-kind-prod.git
+    targetRevision: main
+    path: 50-gateway-routes
+    directory:
+      exclude: "{application.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kiac-gateway
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
