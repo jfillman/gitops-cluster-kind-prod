@@ -31802,6 +31802,15 @@ metadata:
     app.kubernetes.io/name: argocd-cmd-params-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-cmd-params-cm
+# server.insecure: "true" - added 2026-09-02, mirrors gitops-cluster-dev's own
+# install.yaml. The kiac Gateway (traefik.io/gateway-controller) only has an HTTP/80
+# listener, no TLS termination in front of this Service - argocd-server's stock
+# default (TLS on, HTTP redirected to HTTPS) means every HTTPRoute pointed at port 80
+# just gets a 307 back to a https:// URL the Gateway has no listener for. This makes
+# argocd-server itself terminate plain HTTP instead. Same fix applied to
+# argocd-apps-install/application.yaml's own configs.params for the second instance.
+data:
+  server.insecure: "true"
 ---
 apiVersion: v1
 kind: ConfigMap

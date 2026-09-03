@@ -51,6 +51,14 @@ spec:
         dex:
           enabled: false
         configs:
+          # Added 2026-09-02: the kiac Gateway only has an HTTP/80 listener, no TLS
+          # termination in front of this Service - argocd-server's stock default (TLS
+          # on, HTTP redirected to HTTPS) meant argocd-apps-ui's HTTPRoute just got a
+          # 307 back to a https:// URL the Gateway can't serve. Mirrors
+          # gitops-cluster-dev's own copy of this file; also applied to
+          # 01-argocd-platform/install.yaml's own argocd-cmd-params-cm.
+          params:
+            server.insecure: "true"
           cm:
             resource.customizations.health.argoproj.io_Rollout: |
               function checkReplicasStatus(obj)
