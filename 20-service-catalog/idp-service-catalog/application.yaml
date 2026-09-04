@@ -60,7 +60,7 @@ spec:
     # XRDs with terasky.backstage.io/add-to-catalog + target-path for Backstage
     # catalog ingestion (idp/docs/backstage-design.md). No functional change to
     # this Application's own synced XRDs' behavior.
-    targetRevision: v0.3.49
+    targetRevision: v0.3.50
     path: .
     directory:
       recurse: true
