@@ -10,6 +10,16 @@
 # ServerSideApply=true - same annotation-size limit gitops-cluster-dev's own copy of
 # this file already hit (metadata.annotations too long on
 # clustersecretstores.external-secrets.io/secretstores.external-secrets.io).
+#
+# hostAliases (added 2026-09-04): same live bug as gitops-cluster-kind-man's copy of
+# this file, found while wiring the kubernetes-ingestor plugin's cross-cluster
+# tokens - kind-prod's own ../cluster-secret-store.yaml also reaches Infisical via
+# `dev.kiac.local:31800` (Infisical only runs on kiac-dev), which CoreDNS can't
+# resolve (that hostname only ever lands in the laptop's own /etc/hosts via
+# refresh-kiac-hosts.sh). Confirmed live: platform-secret-store's ClusterSecretStore
+# was `InvalidProviderConfig: unable to create client` on kiac-prod too, identical to
+# kind-man. IP needs the same refresh-kiac-hosts.sh healing as every other kiac IP
+# reference in this fleet.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -26,6 +36,11 @@ spec:
     targetRevision: 2.8.0
     helm:
       releaseName: external-secrets
+      values: |
+        hostAliases:
+          - ip: "192.168.64.11"
+            hostnames:
+              - "dev.kiac.local"
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
