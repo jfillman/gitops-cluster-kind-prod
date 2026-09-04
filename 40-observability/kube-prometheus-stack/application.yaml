@@ -51,15 +51,15 @@ spec:
             # Prometheus doesn't accept remote-write by default.
             enableFeatures:
               - remote-write-receiver
+            resources:
+              requests:
+                cpu: 150m
+                memory: 750Mi
           # Exposes the sidecar's gRPC port so Thanos Query can find it.
           thanosService:
             enabled: true
           thanosServiceMonitor:
             enabled: true
-          resources:
-            requests:
-              cpu: 150m
-              memory: 750Mi
         alertmanager:
           enabled: true
         grafana:
