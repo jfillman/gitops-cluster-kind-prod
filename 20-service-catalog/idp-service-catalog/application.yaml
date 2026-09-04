@@ -60,7 +60,13 @@ spec:
     # XRDs with terasky.backstage.io/add-to-catalog + target-path for Backstage
     # catalog ingestion (idp/docs/backstage-design.md). No functional change to
     # this Application's own synced XRDs' behavior.
-    targetRevision: v0.3.50
+    # 2026-09-04: bumped from v0.3.50 to v0.3.53, matching gitops-cluster-dev's own
+    # bump (same reasoning: v0.3.51..v0.3.53 touches only RolloutWatch component-type
+    # annotation + idp-application's outcome-relay hostAliases, both outside this
+    # Application's include list - confirmed via `git diff v0.3.50 v0.3.53 --stat`
+    # on those exact paths, no diff). No functional change to this Application's own
+    # synced resources.
+    targetRevision: v0.3.53
     path: .
     directory:
       recurse: true
