@@ -60,6 +60,15 @@ spec:
           params:
             server.insecure: "true"
           cm:
+            # Backstage's ArgoCD plugin (idp/docs/backstage-design.md plugin #1):
+            # a dedicated local account, `apiKey` capability only (no `login` -
+            # can't be used to sign into the UI/CLI with a password, only to hold
+            # API tokens minted for it). Bound to the built-in `role:readonly` via
+            # configs.rbac below. Token itself is never in git - see
+            # gitops-cluster-dev's own copy of this file for the full rationale;
+            # mirrored here, each instance needs its own account + token, same as
+            # argocd-repo-creds-jfillman already needed per-instance registration.
+            accounts.backstage: apiKey
             resource.customizations.health.argoproj.io_Rollout: |
               function checkReplicasStatus(obj)
                 local hs = {}
@@ -248,6 +257,12 @@ spec:
                   health_status.status = "Progressing"
                   health_status.message = "No Ready condition yet"
                   return health_status
+          rbac:
+            # Binds the `backstage` account above to ArgoCD's own built-in
+            # read-only role - get/list on every resource in every project, no
+            # write verbs. Mirrors gitops-cluster-dev's own copy of this file.
+            policy.csv: |
+              g, backstage, role:readonly
         server:
           # Argo Rollouts UI extension: renders the canary/blue-green step timeline
           # inside an Application's resource tree in the web UI. v0.4.0 (not v0.3.7,
