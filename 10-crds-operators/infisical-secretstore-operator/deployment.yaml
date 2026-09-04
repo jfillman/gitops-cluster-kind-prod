@@ -65,7 +65,7 @@ spec:
             - name: USER
               value: infisical-secretstore-operator
             - name: INFISICAL_API_URL
-              value: http://192.168.64.11:31800
+              value: http://dev.kiac.local:31800
             - name: INFISICAL_ORG_ID
               value: "820c617c-71a5-45e4-bc19-863a4f88edf8"
             - name: INFISICAL_ADMIN_TOKEN
