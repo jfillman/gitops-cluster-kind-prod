@@ -56,6 +56,10 @@ spec:
             enabled: true
           thanosServiceMonitor:
             enabled: true
+          resources:
+            requests:
+              cpu: 150m
+              memory: 750Mi
         alertmanager:
           enabled: true
         grafana:
