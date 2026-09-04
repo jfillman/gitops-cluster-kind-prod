@@ -39,6 +39,17 @@
 # Composition's own cluster-based branch), never kubernetes - configure_kubernetes_auth()
 # is simply never called here, so main.py's own optional-env-var handling (see that
 # file's own header) means there's nothing missing to configure.
+#
+# hostAliases (added 2026-09-04): same live bug as this cluster's own
+# external-secrets/application.yaml and the outcome-relay PostSync Jobs - a pod's
+# CoreDNS never consults the Mac host's /etc/hosts, so INFISICAL_API_URL above
+# (dev.kiac.local) was unresolvable in-cluster. Confirmed live: this operator's own
+# logs showed continuous NameResolutionError retries (400+) since kind-dev's last IP
+# change, silently freezing every InfisicalProject's status at whatever it last
+# managed to observe before resolution broke (e.g. checkout-api-kind-prod stuck
+# showing a stale "duplicate slug" Failed status from before the DNS gap started,
+# not a live re-check). IP needs the same refresh-kiac-hosts.sh healing as every
+# other kiac IP reference in this fleet.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -57,6 +68,10 @@ spec:
         app: infisical-secretstore-operator
     spec:
       serviceAccountName: infisical-secretstore-operator
+      hostAliases:
+        - ip: "192.168.64.11"
+          hostnames:
+            - "dev.kiac.local"
       containers:
         - name: operator
           image: ghcr.io/jfillman/infisical-secretstore-operator:dev
