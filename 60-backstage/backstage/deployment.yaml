@@ -1,0 +1,286 @@
+# image tag is a real, live-verified digest as of first deploy - NodeJSApplication's
+# own onboarding doesn't yet wire a `latest`/`stable` moving tag or a GitOps image-
+# update mechanism (Argo CD Image Updater, etc.) for this app, so bumping the version
+# after a new CI build is a manual edit here for now, same as this platform's other
+# manually-pinned image references (ArgoCD's own install.yaml, the rollout-extension
+# version pin in argocd-apps-install/application.yaml). Worth automating later, not
+# scoped into this first deploy.
+#
+# backend.database env vars (POSTGRES_HOST/PORT/USER/PASSWORD) match exactly what
+# app-config.production.yaml declares - confirmed by reading that file directly, not
+# guessed. POSTGRES_USER is the app-level "backstage" user (auth.username on
+# ../postgres/application.yaml), not the postgres-password admin credential - the
+# secretKeys.userPasswordKey default (`password`) is what backstage-postgres-
+# credentials actually carries for this user, confirmed against the chart's own
+# defaults when that Application was written.
+#
+# imagePullSecrets: registry-credentials - this namespace needs the
+# platform.io/managed-secrets: "true" label for kind-man's registry-credentials
+# ClusterExternalSecret to populate it (see the Namespace manifest below) - confirmed
+# live the image is genuinely private (src repo's own visibility: private XR field)
+# and pulls fail without this.
+#
+# BASE_URL (2026-08-27): real ingress hostname landed via Gateway API
+# (../../10-crds-operators/contour/gateway.yaml + ./httproute.yaml) - app-config.
+# production.yaml's app.baseUrl/backend.baseUrl now read this via ${BASE_URL}
+# substitution, same pattern as the POSTGRES_* vars below, instead of the image's
+# baked-in localhost defaults. Requires the image tag below to be at or after the
+# build that parameterized app-config.production.yaml - a pre-2026-08-27 image
+# still has baseUrl hardcoded to localhost regardless of this env var.
+#
+# 1.0.0-30524b1: first image with BASE_URL wired + the IDP branding/blue-theme
+# customization + a crypto.randomUUID() polyfill - that API is secure-context-
+# only (HTTPS/localhost) and threw live the moment this app was reached via a
+# real non-HTTPS hostname instead of `kubectl port-forward`'s implicit
+# localhost. Polyfilled via crypto.getRandomValues() rather than standing up
+# TLS for this cluster yet (see idp/docs/backstage-design.md).
+#
+# /healthcheck confirmed live (ran the real backend locally, curled it, got a real 200)
+# - not guessed from Backstage's own docs alone.
+#
+# TLS + GitHub auth + real permission policy (2026-08-27): BASE_URL now https://
+# backstage.man.local:8453 (../../10-crds-operators/contour/gateway.yaml's new
+# https-backstage listener + certificate-backstage.yaml, cert-manager's
+# `selfsigned` ClusterIssuer - see that directory's cluster-issuer.yaml).
+#
+# kiac migration (2026-09-03): BASE_URL now http://backstage.man.kiac.local - man
+# moved off kind/Contour+cert-manager TLS onto a kiac cluster (Apple `container`
+# runtime, see idp/docs/local-clusters.md), whose installed Gateway is HTTP-only
+# (no TLS listener at all, no port suffix - plain port 80). The old
+# backstage.man.local:8453 hostname/cert/listener no longer exist on this cluster.
+# Paired with the backstage repo's own upgrade-insecure-requests CSP fix (same
+# commit series) - that directive alone was already breaking every static asset
+# load over the new HTTP-only path regardless of this value. GitHub OAuth's
+# registered callback URL must be updated to match this new BASE_URL by hand on
+# GitHub's side (not something this repo or Crossplane can do) - coordinate before
+# assuming sign-in works after this change goes live.
+#
+# GITHUB_OAUTH_CLIENT_ID/SECRET (github-oauth-secret.yaml, this directory) back a
+# dedicated GitHub OAuth App - not the fleet's other two GitHub credentials, see
+# that file's own header for why. Requires the image tag below to be at or after
+# the build that wires plugin-auth-backend-module-github-provider + the real
+# permission policy (packages/backend/src/index.ts, packages/backend/src/
+# permissionPolicy.ts in the backstage repo) - guest auth (still registered, but
+# already refused outside NODE_ENV=development by Backstage's own guest
+# authenticator) and allow-all permissions are gone as of that build.
+#
+# 1.0.0-327f699: that build, real and live-verified (backstage repo commit 327f699).
+#
+# 1.0.0-9f31382: the new frontend system ships a guest-only sign-in card by
+# default and does not read auth.providers to decide what to offer - confirmed
+# live 2026-08-27 that 1.0.0-327f699's fully-working github backend (redirects
+# to github.com/login/oauth/authorize correctly) had no way to be reached from
+# the UI at all. This build adds a SignInPageBlueprint override
+# (packages/app/src/modules/auth/index.tsx) offering GitHub for real.
+#
+# 1.0.0-c39aaec (2026-08-27, catalog ingestion): first image with
+# @terasky/backstage-plugin-kubernetes-ingestor wired in (backend/src/index.ts,
+# app-config.yaml's kubernetes: + kubernetesIngestor: blocks) - see
+# idp/docs/backstage-design.md "Catalog ingestion" and this Deployment's own
+# serviceAccountName/env changes (./rbac.yaml, ./kind-dev-token-external-secret.yaml,
+# ./kind-prod-token-external-secret.yaml). Squashes commits 94d3505 (plugin wiring +
+# kind-man-only config), 461f676 (kind-dev/kind-prod cluster entries), and c39aaec
+# itself (an empty retrigger commit after a webhook re-registration - the actual code
+# is unchanged from 461f676, only the image tag differs).
+#
+# 1.0.0-359d273: allowRepoSelection: true -> false for crossplane.xrds.publishPhase -
+# confirmed live (queried a generated GoApplication template's actual JSON schema from
+# Backstage's own catalog DB) that true produced a blank, unprefilled RepoUrlPicker
+# form field instead of defaulting to git.repoUrl - a real gap the prior image shipped
+# with. false hardcodes repoUrl from config directly into the create-pull-request
+# step instead.
+#
+# 1.0.0-a90c0d3: yarn patch for @terasky/backstage-plugin-scaffolder-backend-module-
+# terasky-utils@2.9.0 (backstage repo's .yarn/patches/) - running any v2 XRD template
+# (all 5 Bootstrap-tier templates) threw "TypeError: Cannot delete property
+# 'compositionSelectionStrategy' of [object Object]" in claim-templating.cjs.js's
+# deleteNested(). Root cause: that action's `filteredParameters = { ...input.parameters }`
+# is only a shallow copy - nested objects (crossplane: {compositionSelectionStrategy})
+# are the same frozen object references Backstage's nunjitsu template renderer hands
+# back for a single `${{ parameters }}` expression (frozen to protect its own immutable
+# context), so `delete`ing a key on them throws in strict mode. Patched to a real deep
+# clone via JSON.parse(JSON.stringify(...)), same pattern Backstage's own
+# NunjucksWorkflowRunner already uses for this exact reason.
+#
+# serviceAccountName: backstage-ingestor (2026-08-27, catalog ingestion): read-only
+# in-cluster K8s access for the kubernetes-ingestor plugin (RBAC in ./rbac.yaml, this
+# directory). Previously ran as `default` with no RBAC bound anywhere - zero K8s
+# access. Uses the kubelet-projected, auto-rotating SA token (no ESO/Infisical hop -
+# same cluster), consistent with never persisting a manually-minted credential.
+#
+# ArgoCD plugin (2026-09-03): image tag below (1.0.1-1e3c7fa) predates the
+# @roadiehq/backstage-plugin-argo-cd(-backend) wiring (backstage repo's
+# packages/app/src/App.tsx, packages/backend/src/index.ts, app-config.yaml's
+# `argocd:` block) - needs a new image build (push to the backstage repo, real
+# CI per platform-cicd) and this tag bumped to it before the plugin is actually
+# live, same requirement every prior feature-adding image bump on this line
+# documents. Until then, ARGOCD_DEV_APPS_TOKEN/ARGOCD_PROD_APPS_TOKEN below are
+# inert - the running image doesn't read them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backstage
+  labels:
+    platform.io/managed-secrets: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      serviceAccountName: backstage-ingestor
+      imagePullSecrets:
+        - name: registry-credentials
+      # ArgoCD plugin (2026-09-03) + Kubernetes plugin (2026-09-04): resolves
+      # argocd-apps.{dev,prod}.kiac.local and kube-apiserver.{dev,prod}.kiac.local
+      # to each cluster's current control-plane VM IP for THIS pod specifically -
+      # separate from (but the same underlying problem as) the developer-laptop
+      # /etc/hosts entries refresh-kiac-hosts.sh maintains for the argocd-apps
+      # pair (the kube-apiserver pair is pod-only, nothing on the laptop needs to
+      # resolve them - see app-config.yaml's kubernetes: block comment for why).
+      # kiac has no static-IP option (confirmed upstream, idp/docs/
+      # local-clusters.md) - vmnet hands out a fresh IP on every VM boot, so all
+      # four entries below WILL go stale on the next kiac-dev/kiac-prod restart.
+      # When that happens (argocd/app-name-annotated entities go blank, and
+      # kubernetes-ingestor/the Kubernetes plugin stop reaching kind-dev/kind-prod
+      # entirely - both degrade to "no data"/connection errors rather than
+      # crashing the pod), re-run `container list` and patch this list by hand, or
+      # run refresh-kiac-hosts.sh (it rewrites this file's IPs for you, commit+push
+      # still manual), then let ArgoCD's own selfHeal resync it.
+      hostAliases:
+        - ip: "192.168.64.2"
+          hostnames:
+            - "argocd-apps.dev.kiac.local"
+            - "kube-apiserver.dev.kiac.local"
+      containers:
+        - name: backstage
+          image: ghcr.io/jfillman/backstage:1.0.1-a7f4a32
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7007
+          env:
+            - name: BASE_URL
+              value: http://backstage.prod.kiac.local
+            - name: POSTGRES_HOST
+              value: backstage-postgres-postgresql.backstage.svc.cluster.local
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: backstage
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-postgres-credentials
+                  key: password
+            - name: GITHUB_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-github-oauth-creds
+                  key: clientId
+            - name: GITHUB_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-github-oauth-creds
+                  key: clientSecret
+            # GITHUB_TOKEN (2026-08-28): backs integrations.github[0].token in
+            # app-config.yaml - the scaffolder's git-write PAT (see
+            # ./github-token-secret.yaml, this directory, for why this is a dedicated
+            # credential rather than reusing the OAuth creds above or Crossplane's
+            # provider-github-creds). optional: true, same reasoning as
+            # KIND_DEV_SA_TOKEN/KIND_PROD_SA_TOKEN below - don't block the whole pod
+            # (and every other already-working feature) on this one manual Infisical
+            # step; until it's planted, only PR-creation scaffolder steps fail, with
+            # the "No token available" error this replaces.
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-github-token
+                  key: token
+                  optional: true
+            # KIND_DEV_SA_TOKEN / KIND_PROD_SA_TOKEN (2026-08-27, catalog ingestion
+            # Phase 2): read-only backstage-ingestor tokens from those clusters, see
+            # ./kind-dev-token-external-secret.yaml / ./kind-prod-token-external-
+            # secret.yaml (this directory) and gitops-cluster-dev/00-bootstrap/
+            # backstage-ingestor-rbac/README.md for how they're planted. Marked
+            # optional: true so the pod isn't blocked on the user's manual Infisical
+            # step - app-config.yaml's kubernetes.clusterLocatorMethods entries for
+            # kind-dev/kind-prod simply won't authenticate until these are populated.
+            - name: KIND_DEV_SA_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-kind-dev-token
+                  key: token
+                  optional: true
+            # ARGOCD_DEV_APPS_TOKEN / ARGOCD_PROD_APPS_TOKEN (2026-09-03, ArgoCD
+            # plugin): read-only argocd-apps API tokens from those clusters' own
+            # `backstage` accounts - see ./argocd-dev-apps-token-external-secret.yaml /
+            # ./argocd-prod-apps-token-external-secret.yaml (this directory) for how
+            # they're minted and planted. optional: true, same reasoning as
+            # KIND_DEV_SA_TOKEN/KIND_PROD_SA_TOKEN above - app-config.yaml's
+            # argocd.appLocatorMethods entries simply won't authenticate until these
+            # are populated.
+            - name: ARGOCD_DEV_APPS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-argocd-dev-apps-token
+                  key: token
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # Explicit numeric UID required: the image's own USER directive is the
+            # named "node" user, and Kubernetes can't verify runAsNonRoot against a
+            # name - real CreateContainerConfigError hit live on first deploy
+            # ("image has non-numeric user (node), cannot verify user is non-root").
+            # 1000 confirmed against the actual pulled image's /etc/passwd, not
+            # assumed from convention alone.
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+spec:
+  selector:
+    app: backstage
+  ports:
+    - name: http
+      port: 7007
+      targetPort: http

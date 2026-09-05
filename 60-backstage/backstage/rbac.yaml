@@ -1,0 +1,88 @@
+# Read-only Kubernetes access for the kubernetes-ingestor plugin (idp/docs/
+# backstage-design.md "Catalog ingestion") - Backstage had zero K8s access before this
+# (Deployment ran as `default` with no RBAC bound anywhere). Scoped to exactly what
+# kubernetes-ingestor needs for catalog/template generation, per the plugin's own
+# documented minimum (TeraSky-OSS/backstage-plugins kubernetes-ingestor/K8S_RBAC.md):
+# native workloads (`view`) + CRDs (custom ClusterRole, view doesn't cover them) +
+# Crossplane XRDs/Compositions/XRs (`crossplane-browse`). Deliberately excludes
+# `crossplane-view` (adds managed-resource read) - that's for the separate Crossplane
+# visualization plugin, not in scope for catalog ingestion alone.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backstage-ingestor
+  namespace: backstage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-crd-viewer
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-crd-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-crd-viewer
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-crossplane-browse
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crossplane-browse
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage
+---
+# Argo Rollouts visualization (2026-09-04, redhat-argocd plugin's Rollouts
+# feature - app-config.yaml's kubernetes.customResources in the backstage repo).
+# Identical shape to gitops-cluster-dev's own copy - see that file's header for
+# the full rationale.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-argo-rollouts-viewer
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts", "analysisruns"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-argo-rollouts-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-argo-rollouts-viewer
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage
