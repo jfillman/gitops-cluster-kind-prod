@@ -144,26 +144,40 @@ spec:
       imagePullSecrets:
         - name: registry-credentials
       # ArgoCD plugin (2026-09-03) + Kubernetes plugin (2026-09-04): resolves
-      # argocd-apps.{dev,prod}.kiac.local and kube-apiserver.{dev,prod}.kiac.local
-      # to each cluster's current control-plane VM IP for THIS pod specifically -
-      # separate from (but the same underlying problem as) the developer-laptop
-      # /etc/hosts entries refresh-kiac-hosts.sh maintains for the argocd-apps
-      # pair (the kube-apiserver pair is pod-only, nothing on the laptop needs to
-      # resolve them - see app-config.yaml's kubernetes: block comment for why).
-      # kiac has no static-IP option (confirmed upstream, idp/docs/
-      # local-clusters.md) - vmnet hands out a fresh IP on every VM boot, so all
-      # four entries below WILL go stale on the next kiac-dev/kiac-prod restart.
-      # When that happens (argocd/app-name-annotated entities go blank, and
-      # kubernetes-ingestor/the Kubernetes plugin stop reaching kind-dev/kind-prod
-      # entirely - both degrade to "no data"/connection errors rather than
-      # crashing the pod), re-run `container list` and patch this list by hand, or
-      # run refresh-kiac-hosts.sh (it rewrites this file's IPs for you, commit+push
-      # still manual), then let ArgoCD's own selfHeal resync it.
+      # argocd-apps.dev.kiac.local and kube-apiserver.dev.kiac.local to kiac-dev's
+      # current control-plane VM IP for THIS pod specifically - separate from (but
+      # the same underlying problem as) the developer-laptop /etc/hosts entries
+      # refresh-kiac-hosts.sh maintains for the argocd-apps hostname (the
+      # kube-apiserver one is pod-only, nothing on the laptop needs to resolve it -
+      # see app-config.yaml's kubernetes: block comment for why). kiac has no
+      # static-IP option (confirmed upstream, idp/docs/local-clusters.md) - vmnet
+      # hands out a fresh IP on every VM boot, so this WILL go stale on kiac-dev's
+      # next restart. When that happens, re-run `container list` and patch this
+      # list by hand, or run refresh-kiac-hosts.sh, then let ArgoCD's own selfHeal
+      # resync it.
+      #
+      # argocd-apps.prod.kiac.local (2026-09-05, kiac-prod relocation): the
+      # redhat-argocd plugin's config (argocd.appLocatorMethods in app-config.yaml)
+      # has no in-cluster short-circuit the way kubernetes.clusterLocatorMethods
+      # does - it always calls out to the instance's configured URL, which for
+      # kiac-prod is still the external Gateway hostname, not a Service DNS name.
+      # Now that this pod runs ON kiac-prod, resolving that hostname means hairpin-
+      # ing back to this same cluster's own control-plane VM IP (Traefik's Gateway
+      # listener), not a remote address - dropping this entry entirely during the
+      # relocation (assuming it was subsumed by the Kubernetes plugin's switch to
+      # in-cluster auth) broke the ArgoCD plugin outright: `getent hosts` returned
+      # NXDOMAIN, surfacing as a real 500 on every /api/argocd/... call ("fetch
+      # failed"). Same staleness caveat as the kiac-dev entry above - this is
+      # kiac-prod's OWN IP now, so it drifts on every kiac-prod restart, not
+      # kiac-dev's.
       hostAliases:
         - ip: "192.168.64.2"
           hostnames:
             - "argocd-apps.dev.kiac.local"
             - "kube-apiserver.dev.kiac.local"
+        - ip: "192.168.64.3"
+          hostnames:
+            - "argocd-apps.prod.kiac.local"
       containers:
         - name: backstage
           image: ghcr.io/jfillman/backstage:1.0.2-29e99bf
