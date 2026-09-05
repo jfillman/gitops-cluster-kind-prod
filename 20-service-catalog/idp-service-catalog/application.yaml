@@ -66,7 +66,22 @@ spec:
     # Application's include list - confirmed via `git diff v0.3.50 v0.3.53 --stat`
     # on those exact paths, no diff). No functional change to this Application's own
     # synced resources.
-    targetRevision: v0.3.53
+    # 2026-09-05: bumped from v0.3.53 to v0.3.56 - fixes the SecretStore
+    # Composition's hardcoded Infisical NodePort IP (10.89.0.2) again, this
+    # time in the per-tenant compositions/secretstore/templates/*.yaml
+    # (gitops-cluster-template's own static store was fixed 2026-09-04, this
+    # one was missed). Now dev.kiac.local, matching that fix. Live symptom:
+    # every tenant ClusterSecretStore on this cluster except platform-secret-store
+    # stuck InvalidProviderConfig; a live kubectl patch to the composed
+    # ClusterSecretStore got reverted by Crossplane's own next reconcile, since
+    # it re-renders from this (stale) Composition - not an ArgoCD selfHeal
+    # revert, this Application has none. v0.3.53..v0.3.56's only diff within
+    # this Application's include list (slo/secretstore/rolloutwatch) is that
+    # IP->hostname change, twice, in compositions/secretstore/composition.yaml
+    # (templates/*.yaml also changed but aren't in this Application's own
+    # include list - confirmed via `git diff v0.3.53 v0.3.56 --stat` on the
+    # synced paths only).
+    targetRevision: v0.3.56
     path: .
     directory:
       recurse: true
