@@ -69,7 +69,7 @@ spec:
     spec:
       serviceAccountName: infisical-secretstore-operator
       hostAliases:
-        - ip: "192.168.64.11"
+        - ip: "192.168.64.2"
           hostnames:
             - "dev.kiac.local"
       containers:
