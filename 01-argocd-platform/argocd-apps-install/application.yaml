@@ -59,6 +59,19 @@ spec:
           # 01-argocd-platform/install.yaml's own argocd-cmd-params-cm.
           params:
             server.insecure: "true"
+            # 2026-09-05: ArgoCD's git-files generator defaults to "greedy" globbing -
+            # a single `*` in files.path crosses directory separators unless this flag
+            # is set (see Generators-Git-File-Globbing docs). tenant-appprojects' own
+            # `tenants/*/identity.yaml` pattern was matching not just the 4 top-level
+            # tenant identity.yaml files it's meant for, but also the 5 newer per-env
+            # tenants/<app>/<env>/identity.yaml files (flat schema, no platformIdentity
+            # wrapper) that ApplicationEnvironment's writer produces - all 5 rendered
+            # `.platformIdentity.appName` as <no value>, collided on name, and the
+            # ApplicationSet went permanently Degraded (failing every 3-min poll, not a
+            # one-off/stale error). tenant-onboarding's own `tenants/*/*/identity.yaml`
+            # and xr-requests' directory generator already assume non-greedy semantics,
+            # so this instance-wide flag shouldn't change their behavior.
+            applicationsetcontroller.enable.new.git.file.globbing: "true"
           cm:
             # Backstage's ArgoCD plugin (idp/docs/backstage-design.md plugin #1):
             # a dedicated local account, `apiKey` capability only (no `login` -
