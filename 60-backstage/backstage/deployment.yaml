@@ -252,6 +252,21 @@ spec:
                   name: backstage-argocd-dev-apps-token
                   key: token
                   optional: true
+            # Dropped during the kiac-prod relocation (2026-09-05) - only
+            # ARGOCD_DEV_APPS_TOKEN survived the copy from kind-man's original
+            # Deployment, even though app-config.yaml's argocd.appLocatorMethods
+            # still configures a kiac-prod instance too (token: ${ARGOCD_PROD_APPS_TOKEN}).
+            # Confirmed live: the secret itself (backstage-argocd-prod-apps-token)
+            # already exists in this namespace - only this env var block was
+            # missing - and the backend was sending an unauthenticated request,
+            # surfacing as a real 401 on every /api/argocd/argoInstance/kiac-prod/...
+            # call (redhat-argocd plugin logs, this Deployment's own pod).
+            - name: ARGOCD_PROD_APPS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-argocd-prod-apps-token
+                  key: token
+                  optional: true
           readinessProbe:
             httpGet:
               path: /healthcheck
