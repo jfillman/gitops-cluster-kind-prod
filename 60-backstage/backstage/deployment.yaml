@@ -166,7 +166,7 @@ spec:
             - "kube-apiserver.dev.kiac.local"
       containers:
         - name: backstage
-          image: ghcr.io/jfillman/backstage:1.0.1-a7f4a32
+          image: ghcr.io/jfillman/backstage:1.0.2-29e99bf
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
