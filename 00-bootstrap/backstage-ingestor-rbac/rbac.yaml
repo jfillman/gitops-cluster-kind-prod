@@ -94,3 +94,29 @@ subjects:
   - kind: ServiceAccount
     name: backstage-ingestor
     namespace: backstage-system
+---
+# Gateway API (2026-09-06, Glidepath's Config-tab route URL - app-config.yaml's
+# kubernetes.customResources in the backstage repo). Identical shape to
+# gitops-cluster-dev's own copy - see that file's header for the full
+# rationale.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-gateway-api-viewer
+rules:
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "gateways"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-gateway-api-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-gateway-api-viewer
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage-system
