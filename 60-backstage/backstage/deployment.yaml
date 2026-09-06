@@ -180,7 +180,7 @@ spec:
             - "argocd-apps.prod.kiac.local"
       containers:
         - name: backstage
-          image: ghcr.io/jfillman/backstage:1.0.2-84ec0b2
+          image: ghcr.io/jfillman/backstage:1.0.2-4140fc1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
