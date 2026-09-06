@@ -108,6 +108,22 @@ rules:
     resources: ["httproutes", "gateways"]
     verbs: ["get", "list", "watch"]
 ---
+# namespace: backstage, not backstage-system as this file's own Namespace/
+# ServiceAccount/Secret objects above declare - confirmed live (2026-09-06)
+# that Backstage's real, in-use ServiceAccount on this cluster is
+# system:serviceaccount:backstage:backstage-ingestor (Backstage runs
+# in-cluster here, `kubectl get deploy backstage -n backstage -o
+# jsonpath='{.spec.template.spec.serviceAccountName}'`), and that the other
+# four ClusterRoleBindings below (view/crd-viewer/crossplane-browse/
+# argo-rollouts-viewer) already have live `subjects[].namespace: backstage`
+# despite this file's own text still saying backstage-system - drift from
+# some earlier out-of-band fix this file was never updated to match. This
+# binding was live-patched to backstage the same way, and written here
+# matching that reality rather than the file's stale backstage-system,
+# rather than perpetuating the mismatch on a fifth binding. The
+# broader backstage-system-vs-backstage drift (this file's Namespace/
+# ServiceAccount/Secret objects, and the other four bindings' own text)
+# is real and pre-existing, not introduced or fully resolved here.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -119,4 +135,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: backstage-ingestor
-    namespace: backstage-system
+    namespace: backstage
