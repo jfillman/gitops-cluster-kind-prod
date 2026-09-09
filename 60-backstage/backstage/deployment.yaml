@@ -116,6 +116,14 @@
 # live, same requirement every prior feature-adding image bump on this line
 # documents. Until then, ARGOCD_DEV_APPS_TOKEN/ARGOCD_PROD_APPS_TOKEN below are
 # inert - the running image doesn't read them.
+#
+# 1.0.2-b07063b (2026-09-08, Notifications tab): added app-config.yaml's
+# backend.auth.externalAccess block requiring GLIDEPATH_NOTIFY_TOKEN, without
+# wiring the env var here - every pod on this image crashlooped on startup
+# until GLIDEPATH_NOTIFY_TOKEN was added below (2026-09-09), backed by
+# ./glidepath-backstage-notify-external-secret.yaml. Confirmed live: the old
+# ReplicaSet's pod kept serving throughout since the rollout never completed,
+# so this was a stuck-rollout incident, not a hard outage.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -267,6 +275,24 @@ spec:
                   name: backstage-argocd-prod-apps-token
                   key: token
                   optional: true
+            # GLIDEPATH_NOTIFY_TOKEN (2026-09-09): backs app-config.yaml's
+            # backend.auth.externalAccess[0].options.token, added in commit
+            # b07063b without this half ever being wired - real incident, not
+            # preemptive: every image built from that commit forward crashed
+            # on startup with "Missing required config value at
+            # 'backend.auth.externalAccess[0].options.token'" (confirmed live
+            # on this exact Deployment). Deliberately NOT optional: true,
+            # unlike every other token above - externalAccess's token field
+            # isn't an optional integration that quietly no-ops when absent,
+            # it's a required config value Backstage's own loader treats as
+            # fatal if the substitution can't resolve at all. See
+            # ./glidepath-backstage-notify-external-secret.yaml, this
+            # directory, for where the value comes from.
+            - name: GLIDEPATH_NOTIFY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: glidepath-backstage-notify
+                  key: token
           readinessProbe:
             httpGet:
               path: /healthcheck
