@@ -24,8 +24,8 @@ metadata:
   name: tenant-onboarding
   namespace: argocd-apps
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: tenant-onboarding
+    hanger.io/component: cluster-config
+    hanger.io/subcomponent: tenant-onboarding
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=invalid"]
@@ -39,10 +39,10 @@ spec:
     metadata:
       name: "{{.appName}}-{{.env}}"
       labels:
-        platform.io/component: cluster-config
-        platform.io/subcomponent: tenant-onboarding
-        platform.io/app: "{{.appName}}"
-        platform.io/env: "{{.env}}"
+        hanger.io/component: cluster-config
+        hanger.io/subcomponent: tenant-onboarding
+        hanger.io/app: "{{.appName}}"
+        hanger.io/env: "{{.env}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       namespace: argocd-apps
@@ -97,7 +97,7 @@ spec:
               envName: "{{.env}}"
               namespace:
                 labels:
-                  platform.io/managed-secrets: "true"
+                  hanger.io/managed-secrets: "true"
             valueFiles:
               - $appsrc/kind-prod/{{.env}}/values.yaml
         - repoURL: "{{.gitopsRepoUrl}}"

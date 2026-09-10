@@ -24,8 +24,8 @@ metadata:
   name: idp-onboarding
   namespace: argocd-apps
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: xr-requests
+    hanger.io/component: cluster-config
+    hanger.io/subcomponent: xr-requests
 spec:
   description: "SecretStore XR onboarding (service-catalog-design.md Item 8): renders
     gitops-cluster-kind-prod-tenants/tenants/<app>/xr-requests/ into app-<appName>-xrs."

@@ -29,8 +29,8 @@ metadata:
   name: tenant-appprojects
   namespace: argocd-apps
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: tenant-onboarding
+    hanger.io/component: cluster-config
+    hanger.io/subcomponent: tenant-onboarding
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=invalid"]
@@ -44,9 +44,9 @@ spec:
     metadata:
       name: "{{.platformIdentity.appName}}-appproject"
       labels:
-        platform.io/component: cluster-config
-        platform.io/subcomponent: tenant-onboarding
-        platform.io/app: "{{.platformIdentity.appName}}"
+        hanger.io/component: cluster-config
+        hanger.io/subcomponent: tenant-onboarding
+        hanger.io/app: "{{.platformIdentity.appName}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       namespace: argocd-apps
