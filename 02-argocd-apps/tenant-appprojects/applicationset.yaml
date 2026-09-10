@@ -60,7 +60,7 @@ spec:
           valuesObject:
             appName: "{{.platformIdentity.appName}}"
             gitopsRepoUrl: "{{.platformIdentity.gitopsRepoUrl}}"
-            idpServiceCatalogRepoUrl: "https://github.com/jfillman/idp-service-catalog.git"
+            idpServiceCatalogRepoUrl: "https://github.com/jfillman/airframe.git"
       destination:
         server: https://kubernetes.default.svc
         namespace: argocd-apps

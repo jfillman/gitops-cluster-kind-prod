@@ -49,7 +49,7 @@ spec:
     spec:
       project: "{{.appName}}"
       sources:
-        - repoURL: https://github.com/jfillman/idp-service-catalog.git
+        - repoURL: https://github.com/jfillman/airframe.git
           targetRevision: v0.3.58
           path: charts/idp-application
           helm:
