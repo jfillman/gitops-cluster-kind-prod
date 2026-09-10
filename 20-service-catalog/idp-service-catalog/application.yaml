@@ -33,7 +33,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/jfillman/idp-service-catalog.git
+    repoURL: https://github.com/jfillman/airframe.git
     # 2026-08-24: bumped from v0.3.34 to v0.3.39. Fixes the SecretStore
     # Composition's hardcoded Infisical NodePort IP - stale at 10.89.0.2 since
     # kind-dev's 2026-08-23/24 rebuild moved the node's real podman-network
