@@ -81,7 +81,7 @@ spec:
     # (templates/*.yaml also changed but aren't in this Application's own
     # include list - confirmed via `git diff v0.3.53 v0.3.56 --stat` on the
     # synced paths only).
-    targetRevision: v0.3.56
+    targetRevision: v0.3.59
     path: .
     directory:
       recurse: true
