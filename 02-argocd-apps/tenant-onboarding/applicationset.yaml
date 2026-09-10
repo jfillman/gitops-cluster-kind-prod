@@ -50,7 +50,7 @@ spec:
       project: "{{.appName}}"
       sources:
         - repoURL: https://github.com/jfillman/airframe.git
-          targetRevision: v0.3.58
+          targetRevision: v0.3.59
           path: charts/airframe-application
           helm:
             valuesObject:
@@ -88,8 +88,8 @@ spec:
     spec:
       sources:
         - repoURL: https://github.com/jfillman/airframe.git
-          targetRevision: v0.3.58
-          path: charts/idp-application
+          targetRevision: v0.3.59
+          path: charts/airframe-application
           helm:
             valuesObject:
               appName: "{{.appName}}"
