@@ -20,8 +20,8 @@ metadata:
   name: xr-requests
   namespace: argocd-apps
   labels:
-    hanger.io/component: cluster-config
-    hanger.io/subcomponent: xr-requests
+    hangar.io/component: cluster-config
+    hangar.io/subcomponent: xr-requests
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=invalid"]
@@ -35,9 +35,9 @@ spec:
     metadata:
       name: "{{.path.basename}}-xr-requests"
       labels:
-        hanger.io/component: cluster-config
-        hanger.io/subcomponent: xr-requests
-        hanger.io/app: "{{.path.basename}}"
+        hangar.io/component: cluster-config
+        hangar.io/subcomponent: xr-requests
+        hangar.io/app: "{{.path.basename}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       namespace: argocd-apps
