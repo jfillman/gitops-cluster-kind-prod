@@ -51,7 +51,7 @@ spec:
       sources:
         - repoURL: https://github.com/jfillman/airframe.git
           targetRevision: v0.3.58
-          path: charts/idp-application
+          path: charts/airframe-application
           helm:
             valuesObject:
               appName: "{{.appName}}"
