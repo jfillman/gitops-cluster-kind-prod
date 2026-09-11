@@ -15,8 +15,8 @@ metadata:
   name: backstage-ingestor-rbac
   namespace: argocd
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: backstage-ingestor-rbac
+    hangar.io/component: cluster-config
+    hangar.io/subcomponent: backstage-ingestor-rbac
 spec:
   project: default
   source:

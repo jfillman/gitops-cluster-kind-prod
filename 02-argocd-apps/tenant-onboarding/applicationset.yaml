@@ -63,7 +63,7 @@ spec:
               # once the chart renders its own Namespace object.
               namespace:
                 labels:
-                  platform.io/managed-secrets: "true"
+                  hangar.io/managed-secrets: "true"
             valueFiles:
               - $appsrc/kind-prod/{{.env}}/values.yaml
         - repoURL: "{{.gitopsRepoUrl}}"

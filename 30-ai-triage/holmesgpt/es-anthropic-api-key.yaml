@@ -4,8 +4,8 @@ metadata:
   name: holmesgpt-secrets
   namespace: holmesgpt
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: ai-triage
+    hangar.io/component: cluster-config
+    hangar.io/subcomponent: ai-triage
 spec:
   refreshInterval: 1h
   secretStoreRef:

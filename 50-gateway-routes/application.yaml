@@ -13,8 +13,8 @@ metadata:
   name: gateway-routes
   namespace: argocd
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: gateway-routes
+    hangar.io/component: cluster-config
+    hangar.io/subcomponent: gateway-routes
 spec:
   project: default
   source:

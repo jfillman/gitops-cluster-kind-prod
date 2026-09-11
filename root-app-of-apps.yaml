@@ -25,8 +25,8 @@ metadata:
   name: gitops-cluster-kind-prod-root
   namespace: argocd
   labels:
-    platform.io/component: cluster-config
-    platform.io/subcomponent: app-of-apps
+    hangar.io/component: cluster-config
+    hangar.io/subcomponent: app-of-apps
 spec:
   project: default
   source:

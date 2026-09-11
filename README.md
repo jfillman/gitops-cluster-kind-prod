@@ -142,7 +142,7 @@ secret` with the real GHCR credential, in `platform-secrets`) has never been don
 section describes (`10-crds-operators/external-secrets/cluster-secret-store.yaml`,
 `platform-cicd`'s secrets migration) - `registry-credentials` is disseminated via a
 `ClusterExternalSecret` (`registry-credentials-cluster-external-secret.yaml`, this same
-directory) to every namespace labeled `platform.io/managed-secrets: "true"`
+directory) to every namespace labeled `hangar.io/managed-secrets: "true"`
 automatically, not `idp-application`'s own opt-in `registryCredentials.enabled` (removed
 from that chart entirely - every app's ServiceAccount now references
 `registry-credentials` unconditionally). The manually-applied `ghcr-pull-secret` this

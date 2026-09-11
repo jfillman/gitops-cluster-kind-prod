@@ -26,7 +26,7 @@ hand-deployed straight to `kind-man`.
   new CI build for now - no GitOps image-updater wired up yet (see TODO backlog).
   `POSTGRES_*` env vars wire it to `postgres/`'s own instance; `imagePullSecrets:
   registry-credentials` needs the `backstage` namespace's
-  `platform.io/managed-secrets: "true"` label (declared in this directory's own
+  `hangar.io/managed-secrets: "true"` label (declared in this directory's own
   `Namespace` manifest) for kind-man's `registry-credentials` `ClusterExternalSecret`
   to populate it - the image is genuinely private.
   - Reachable at `http://backstage.man.kiac.local/` (HTTP only - no port suffix,
