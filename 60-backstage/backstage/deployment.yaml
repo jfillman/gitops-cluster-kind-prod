@@ -179,11 +179,11 @@ spec:
       # kiac-prod's OWN IP now, so it drifts on every kiac-prod restart, not
       # kiac-dev's.
       hostAliases:
-        - ip: "192.168.64.5"
+        - ip: "192.168.64.2"
           hostnames:
             - "argocd-apps.dev.kiac.local"
             - "kube-apiserver.dev.kiac.local"
-        - ip: "192.168.64.6"
+        - ip: "192.168.64.3"
           hostnames:
             - "argocd-apps.prod.kiac.local"
       containers:
