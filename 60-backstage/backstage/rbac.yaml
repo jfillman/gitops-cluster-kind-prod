@@ -86,3 +86,43 @@ subjects:
   - kind: ServiceAccount
     name: backstage-ingestor
     namespace: backstage
+---
+# Prometheus proxy read (2026-09-13, Tower's SLOs tab - usePrometheusQuery.ts
+# queries Sloth's generated burn-rate recording rules directly). Same shape
+# as gitops-cluster-dev/00-bootstrap/backstage-ingestor-rbac/rbac.yaml's own
+# Rekor grant: a namespaced Role/RoleBinding, not a ClusterRole, since
+# kube-prometheus-stack-prometheus is one specific namespaced Service, not a
+# cluster-wide concern. This grant was assumed to already be covered by the
+# `view` ClusterRoleBinding above during this platform's SLO XRD/composition
+# design work - confirmed live 2026-09-13 that assumption was wrong
+# (`view` does not include the services/proxy subresource at all, same gap
+# the Rekor grant already had to work around) - real 403 hit live in Tower's
+# SLOs tab: "services \"kube-prometheus-stack-prometheus:9090\" is
+# forbidden ... cannot get resource \"services/proxy\"". resourceNames
+# matches the exact "name:port" string the proxy URL path is checked
+# against (confirmed by the Rekor grant's own comment) - both forms listed
+# since either could reasonably be used by a caller.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: backstage-ingestor-prometheus-proxy
+  namespace: observability
+rules:
+  - apiGroups: [""]
+    resources: ["services/proxy"]
+    resourceNames: ["kube-prometheus-stack-prometheus", "kube-prometheus-stack-prometheus:9090"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backstage-ingestor-prometheus-proxy
+  namespace: observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: backstage-ingestor-prometheus-proxy
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage
