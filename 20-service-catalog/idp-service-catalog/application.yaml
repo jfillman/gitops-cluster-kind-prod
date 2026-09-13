@@ -81,7 +81,19 @@ spec:
     # (templates/*.yaml also changed but aren't in this Application's own
     # include list - confirmed via `git diff v0.3.53 v0.3.56 --stat` on the
     # synced paths only).
-    targetRevision: v0.3.59
+    # 2026-09-13: bumped v0.3.59 -> v0.3.60. Fixes the SLO XR's own Ready status:
+    # Sloth's PrometheusServiceLevel never sets status.conditions[type=Ready] (only
+    # custom fields like promOpRulesGenerated), so function-auto-ready's "no Ready
+    # condition = not ready" fallback pinned every SLO XR at Ready: False/Creating
+    # forever, even once Sloth had actually finished generating the PrometheusRule -
+    # confirmed live on checkout-api-liveness-latency, stuck this way for 4+ hours
+    # despite a fully working pipeline. Sets the gotemplating.fn.crossplane.io/ready
+    # annotation on the composed PrometheusServiceLevel from its own observed
+    # promOpRulesGenerated status. v0.3.59..v0.3.60's only diff within this
+    # Application's include list (slo/secretstore/rolloutwatch) is this one
+    # addition (checked via `git diff --stat`) - clean, additive-only, same bar the
+    # prior bumps above used.
+    targetRevision: v0.3.60
     path: .
     directory:
       recurse: true
