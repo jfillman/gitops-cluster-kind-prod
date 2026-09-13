@@ -93,15 +93,14 @@ spec:
     # Application's include list (slo/secretstore/rolloutwatch) is this one
     # addition (checked via `git diff --stat`) - clean, additive-only, same bar the
     # prior bumps above used.
-    # 2026-09-13: bumped v0.3.60 -> v0.3.61. v0.3.60's own readiness fix
-    # (dig-based) crashes instead of degrading gracefully when
-    # .observed.resources has a present-but-nil intermediate level, not just
-    # a fully-absent one - confirmed live on checkout-api-readiness-latency
-    # (36 identical ComposeResources failures over 16 minutes, every
-    # reconcile). Replaced with a manual index+if walk. v0.3.60..v0.3.61's
-    # only diff within this Application's include list (slo/secretstore/
-    # rolloutwatch) is this template change (checked via `git diff --stat`).
-    targetRevision: v0.3.61
+    # 2026-09-13: bumped v0.3.60 -> v0.3.61 -> v0.3.62. v0.3.61 fixed dig's
+    # crash on a present-but-nil intermediate level; v0.3.62 fixes the next
+    # layer of the same bug - .observed.resources itself is nil (not an
+    # empty map) on a genuine first reconcile, and index on a nil map panics
+    # too. Both confirmed live on checkout-api-readiness-latency. Only diff
+    # within this Application's include list (slo/secretstore/rolloutwatch)
+    # across both bumps is this one template (checked via `git diff --stat`).
+    targetRevision: v0.3.62
     path: .
     directory:
       recurse: true
