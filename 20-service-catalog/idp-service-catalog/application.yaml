@@ -100,7 +100,26 @@ spec:
     # too. Both confirmed live on checkout-api-readiness-latency. Only diff
     # within this Application's include list (slo/secretstore/rolloutwatch)
     # across both bumps is this one template (checked via `git diff --stat`).
-    targetRevision: v0.3.62
+    # 2026-09-15: bumped v0.3.62 -> v0.3.66. Fixes a real cross-environment
+    # metric collision: an SLO's name+service are commonly identical across
+    # environments by design (e.g. the same checkout-api-liveness-latency
+    # promoted to both prod and a new proofing env), but Sloth's generated
+    # recording/alert rules were labeled only by sloth_service/sloth_slo/
+    # sloth_id - identical between environments - so two independently-
+    # evaluated PrometheusRule objects (one per namespace) wrote to what
+    # Prometheus saw as the same series, whichever evaluated last silently
+    # winning. Confirmed live on kiac-prod's real checkout-api SLOs in
+    # app-checkout-api-prod/app-checkout-api-proofing before this fix. Adds
+    # a `labels: {namespace: ...}` block to the generated
+    # PrometheusServiceLevel's SLO entry (Sloth's own per-SLO `labels`
+    # field), propagated to every rule it generates - namespace is the one
+    # value already guaranteed unique per environment by Kubernetes itself.
+    # v0.3.62..v0.3.66's only diff within this Application's include list
+    # (slo/secretstore/rolloutwatch) is this one addition to
+    # compositions/slo/composition.yaml (checked via `git diff --stat`) -
+    # the other files in that range (release-tracking hooks/rbac, a new
+    # relay-token ExternalSecret) fall outside this Application's own scope.
+    targetRevision: v0.3.66
     path: .
     directory:
       recurse: true
