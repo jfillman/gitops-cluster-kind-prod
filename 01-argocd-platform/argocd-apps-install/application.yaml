@@ -50,6 +50,29 @@ spec:
           install: false
         dex:
           enabled: false
+        # 2026-09-15: argocd-repo-server was found crash-looping live on
+        # this cluster's OTHER ArgoCD instance (argocd-platform, the
+        # install.yaml-managed one in the `argocd` namespace) - 265
+        # restarts, a real sync failing mid-comparison with a plain
+        # "connection refused" to its own :8081. Root cause looked like the
+        # chart's own stock probe timeouts (both readinessProbe and
+        # livenessProbe default to timeoutSeconds: 1 - confirmed via `helm
+        # show values argo-cd/argo-cd --version 10.3.2` - far too tight for
+        # a repo-server doing real git clone/manifest-render work
+        # synchronously) getting a container that's just busy, not actually
+        # unhealthy, killed mid-request. Applied here (argocd-apps, this
+        # cluster's OTHER instance, also chart 10.3.2) preemptively for the
+        # same reason 01-argocd-platform's own install.yaml pins chart
+        # version/CRDs to match this instance - keep both instances'
+        # operational posture consistent rather than only hardening
+        # whichever one happened to be symptomatic first.
+        repoServer:
+          readinessProbe:
+            timeoutSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            timeoutSeconds: 15
+            failureThreshold: 5
         configs:
           # Added 2026-09-02: the kiac Gateway only has an HTTP/80 listener, no TLS
           # termination in front of this Service - argocd-server's stock default (TLS
