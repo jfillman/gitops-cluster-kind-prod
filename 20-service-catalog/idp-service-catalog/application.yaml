@@ -119,7 +119,22 @@ spec:
     # compositions/slo/composition.yaml (checked via `git diff --stat`) -
     # the other files in that range (release-tracking hooks/rbac, a new
     # relay-token ExternalSecret) fall outside this Application's own scope.
-    targetRevision: v0.3.66
+    # 2026-09-15: bumped v0.3.66 -> v0.3.67, same day. v0.3.66 turned out to
+    # be a real regression: labeling every generated rule with `namespace`
+    # (Sloth's per-SLO `labels` field) fixed the leaf recording rules but
+    # broke every rule Sloth computes by DIVIDING two of its own recording
+    # rules together (slo:current_burn_rate:ratio, slo:sli_error:
+    # ratio_rate30d - both went health=err live, "many-to-many matching not
+    # allowed") - Sloth's own generated joins are fixed to
+    # on(sloth_id,sloth_service,sloth_slo), and a label outside that exact
+    # set doesn't disambiguate its internal arithmetic. v0.3.67 fixes this
+    # properly: slos[].name (which sloth_slo/sloth_id are built from) is now
+    # `<xrName>/<namespace>` instead, staying inside Sloth's own match set.
+    # v0.3.66..v0.3.67's only diff within this Application's include list is
+    # this same file (compositions/slo/composition.yaml), reverting the
+    # v0.3.66 labels-block approach in favor of the name-suffix (checked via
+    # `git diff --stat`).
+    targetRevision: v0.3.67
     path: .
     directory:
       recurse: true
