@@ -33046,24 +33046,44 @@ spec:
           value: /helm-working-dir
         image: quay.io/argoproj/argocd:v3.5.0
         imagePullPolicy: Always
+        # 2026-09-15: argocd-repo-server was crash-looping live on this
+        # cluster (265 restarts, confirmed via `kubectl logs`/
+        # containerStatuses) - came up just long enough to pass readiness
+        # before dying again under real work, then failed an actual sync
+        # with a plain "connection refused" to its own :8081 port,
+        # consistent with the liveness probe (timeoutSeconds: 5 against
+        # /healthz?full=true, a DEEPER check than plain readiness) timing
+        # out and getting the container killed mid-clone/render rather than
+        # the process being genuinely unhealthy. Same fix already applied
+        # to this cluster's other instance, argocd-apps (see
+        # argocd-apps-install/application.yaml's own comment, which also
+        # confirmed via `helm show values argo-cd/argo-cd --version 10.3.2`
+        # that this chart's own stock default is an even tighter
+        # timeoutSeconds: 1 on both probes) - bumped both here too, plus
+        # readinessProbe now has an explicit timeoutSeconds at all (it
+        # previously had none, falling back to Kubernetes' own 1s default -
+        # far too tight for a repo-server doing real git work
+        # synchronously).
         livenessProbe:
-          failureThreshold: 3
+          failureThreshold: 5
           httpGet:
             path: /healthz?full=true
             port: 8084
           initialDelaySeconds: 30
           periodSeconds: 30
-          timeoutSeconds: 5
+          timeoutSeconds: 15
         name: argocd-repo-server
         ports:
         - containerPort: 8081
         - containerPort: 8084
         readinessProbe:
+          failureThreshold: 5
           httpGet:
             path: /healthz
             port: 8084
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 10
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
