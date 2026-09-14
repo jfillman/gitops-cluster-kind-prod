@@ -183,7 +183,7 @@ spec:
           hostnames:
             - "argocd-apps.dev.kiac.local"
             - "kube-apiserver.dev.kiac.local"
-        - ip: "192.168.64.5"
+        - ip: "192.168.64.6"
           hostnames:
             - "argocd-apps.prod.kiac.local"
       containers:
