@@ -33084,6 +33084,22 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 10
+        # 2026-09-15: this container had no resources block at all (an
+        # IDE-flagged "noisy neighbor" warning, confirmed) - on a node
+        # otherwise showing no formal MemoryPressure/DiskPressure condition
+        # but still exhibiting real symptoms under load (a trivial `cp`
+        # init container taking minutes, the apiserver itself timing out a
+        # plain `get pods`), an unguaranteed CPU share is a real candidate:
+        # with no request, this pod has the lowest scheduling priority for
+        # CPU time of anything on the node, so real git-clone/manifest-
+        # render work can get starved out from under it - exactly the
+        # "busy, not actually unhealthy" failure mode the probe-timeout fix
+        # right above this was already compensating for. A request only
+        # (no limit) - guarantees this share under contention without
+        # capping it from bursting higher when the node has room.
+        resources:
+          requests:
+            cpu: 250m
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
