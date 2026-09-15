@@ -29,4 +29,3 @@ spec:
             - |
               mc alias set myminio http://minio:9000 admin minioadmin123 &&
               mc mb --ignore-existing myminio/loki &&
-              
