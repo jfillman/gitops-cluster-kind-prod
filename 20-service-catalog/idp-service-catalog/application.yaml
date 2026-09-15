@@ -134,7 +134,21 @@ spec:
     # this same file (compositions/slo/composition.yaml), reverting the
     # v0.3.66 labels-block approach in favor of the name-suffix (checked via
     # `git diff --stat`).
-    targetRevision: v0.3.67
+    # 2026-09-15: bumped v0.3.67 -> v0.3.69 (v0.3.68 is an unrelated
+    # release-tracking-RBAC tag on this shared repo, not skipped
+    # deliberately). v0.3.67's `<xrName>/<namespace>` name-suffix satisfied
+    # Kubernetes' own naming rules but not Sloth v0.16.0's own, stricter SLO
+    # name validation - confirmed live: every SLO using it got rejected at
+    # Sloth's controller ("invalid SLO ID: name must start and end with an
+    # alphanumeric and can only contain alphanumeric, '.', '_', and '-'"),
+    # stuck at Ready: False, promOpRulesGenerated: false - a harder failure
+    # than v0.3.66's (that one at least generated rules, just ambiguous
+    # ones). v0.3.69 uses `_` instead - in Sloth's own allowed charset and,
+    # like `/`, still guaranteed never to appear in a Kubernetes namespace
+    # name. v0.3.67..v0.3.69's only diff within this Application's include
+    # list is again this same file (compositions/slo/composition.yaml),
+    # checked via `git diff --stat`.
+    targetRevision: v0.3.69
     path: .
     directory:
       recurse: true
