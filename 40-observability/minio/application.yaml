@@ -47,12 +47,12 @@ spec:
         # chart version has (the post-install Job's own createBucket() function is
         # defined but never called), and the workaround.
         buckets:
-          - name: thanos
-            policy: none
+#          - name: thanos
+#            policy: none
           - name: loki
             policy: none
-          - name: tempo
-            policy: none
+#          - name: tempo
+#            policy: none
   destination:
     server: https://kubernetes.default.svc
     namespace: observability

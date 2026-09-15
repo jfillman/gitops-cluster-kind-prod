@@ -38,12 +38,12 @@ spec:
           prometheusSpec:
             retention: 6h # short - Thanos owns long-term retention via MinIO
             walCompression: true
-            thanos:
-              # Turns on the Thanos sidecar container in every Prometheus pod.
-              objectStorageConfig:
-                existingSecret:
-                  name: thanos-objstore-config
-                  key: objstore.yml
+            #thanos:
+            #  # Turns on the Thanos sidecar container in every Prometheus pod.
+            #  objectStorageConfig:
+            #    existingSecret:
+            #      name: thanos-objstore-config
+            #      key: objstore.yml
             # Let Prometheus discover the OTel Collector's metrics endpoint.
             serviceMonitorSelectorNilUsesHelmValues: false
             podMonitorSelectorNilUsesHelmValues: false
@@ -57,9 +57,9 @@ spec:
                 memory: 750Mi
           # Exposes the sidecar's gRPC port so Thanos Query can find it.
           thanosService:
-            enabled: true
+            enabled: false
           thanosServiceMonitor:
-            enabled: true
+            enabled: false
         alertmanager:
           enabled: true
         grafana:
@@ -87,40 +87,6 @@ spec:
                     matcherRegex: 'trace_id=(\w+)'
                     name: TraceID
                     url: '$${__value.raw}'
-            - name: Tempo
-              type: tempo
-              access: proxy
-              url: http://tempo.observability.svc.cluster.local:3200
-              uid: tempo
-              jsonData:
-                tracesToLogsV2:
-                  datasourceUid: 'loki'
-                  spanStartTimeShift: '-5m'
-                  spanEndTimeShift: '5m'
-                  filterByTraceID: true
-                  filterBySpanID: false
-                tracesToMetrics:
-                  datasourceUid: 'thanos-query'
-                  spanStartTimeShift: '-5m'
-                  spanEndTimeShift: '5m'
-                  queries:
-                    - name: 'Span latency (p99)'
-                      query: 'histogram_quantile(0.99, sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[5m])) by (le))'
-                serviceMap:
-                  datasourceUid: 'thanos-query'
-                nodeGraph:
-                  enabled: true
-            - name: Thanos-Query
-              type: prometheus
-              access: proxy
-              url: http://thanos-query.observability.svc.cluster.local:9090
-              uid: thanos-query
-              isDefault: false
-              jsonData:
-                exemplarTraceIdDestinations:
-                  - datasourceUid: tempo
-                    name: trace_id
-                httpMethod: POST
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
