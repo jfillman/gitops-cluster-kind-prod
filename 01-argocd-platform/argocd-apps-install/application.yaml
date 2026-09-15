@@ -341,8 +341,20 @@ spec:
             # Binds the `backstage` account above to ArgoCD's own built-in
             # read-only role - get/list on every resource in every project, no
             # write verbs. Mirrors gitops-cluster-dev's own copy of this file.
+            #
+            # role:tower-sync (2026-09-14, HANDOFF-tower-write-actions.md
+            # Tier 1 - user-confirmed to apply on kiac-prod too, not deferred
+            # to Ground/lower only, since plain sync just makes cluster state
+            # match what git already declares) adds exactly one write action -
+            # `sync` - on top of that, bound to the SAME `backstage` account
+            # rather than a second identity/token: no prune, no force (those
+            # stay deferred pending this platform's not-yet-built
+            # authorization model). Refresh needs no policy line here at all -
+            # it piggybacks on the `get` action role:readonly already grants.
             policy.csv: |
+              p, role:tower-sync, applications, sync, */*, allow
               g, backstage, role:readonly
+              g, backstage, role:tower-sync
         server:
           # Argo Rollouts UI extension: renders the canary/blue-green step timeline
           # inside an Application's resource tree in the web UI. v0.4.0 (not v0.3.7,
