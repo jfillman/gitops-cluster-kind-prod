@@ -63,30 +63,7 @@ spec:
         alertmanager:
           enabled: true
         grafana:
-          enabled: true
-          adminPassword: prom-operator # change this for anything beyond local learning
-          sidecar:
-            dashboards:
-              enabled: true
-              # label/labelValue left at chart defaults (grafana_dashboard: "1") -
-              # matches idp-service-catalog's SLO Composition dashboard ConfigMap
-              # exactly (compositions/slo/templates/dashboard-configmap.yaml). NOT
-              # part of the original kind-observe source values file - added for
-              # idp's SLO work, kept here alongside the rest of the transcription.
-          # Provisions Loki + Tempo as datasources alongside the stack's own
-          # Prometheus datasource, and wires the trace<->log<->metric links.
-          additionalDataSources:
-            - name: Loki
-              type: loki
-              access: proxy
-              url: http://loki-gateway.observability.svc.cluster.local
-              uid: loki
-              jsonData:
-                derivedFields:
-                  - datasourceUid: tempo
-                    matcherRegex: 'trace_id=(\w+)'
-                    name: TraceID
-                    url: '$${__value.raw}'
+          enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
