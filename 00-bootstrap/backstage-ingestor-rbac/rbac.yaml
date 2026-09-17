@@ -136,3 +136,74 @@ subjects:
   - kind: ServiceAccount
     name: backstage-ingestor
     namespace: backstage
+---
+# Tower's Topology tab "all resources" gallery (2026-09-17) - RBAC objects
+# (Roles/RoleBindings) are deliberately excluded from the `view`
+# ClusterRole's own aggregation (Kubernetes never lets `view`/`edit` see
+# who-can-do-what by default, for the same reason it excludes Secret data),
+# so a dedicated grant is the only way to surface them, same reasoning as
+# every other CRD-shaped exception in this file. Read-only, no different in
+# spirit from the `view` binding this identity already has for every other
+# resource kind - this only adds visibility into RBAC *configuration*
+# (which subjects a Role names, which rules a RoleBinding grants), never
+# lets this identity exercise those grants itself. Identical shape to
+# gitops-cluster-dev's own copy.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-rbac-viewer
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-rbac-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-rbac-viewer
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    # Real, not backstage-system - see this file's own comment above
+    # gateway-api-viewer's binding for why a new grant here is written
+    # matching the live-correct value rather than the file's older drift.
+    namespace: backstage
+---
+# Same Topology-tab resource gallery, the two CRD kinds it also wants:
+# ExternalSecret (external-secrets.io - this platform's Infisical-backed
+# secret sync, see infisical-secretstore-operator) and ServiceMonitor
+# (monitoring.coreos.com - what wires an app's metrics into
+# kube-prometheus-stack). Neither group is covered by `view` or any
+# existing grant here, same reasoning as backstage-argo-rollouts-viewer/
+# backstage-gateway-api-viewer above - grouped into one ClusterRole since
+# both were added for the same feature, rather than two more separate
+# ClusterRole/ClusterRoleBinding pairs. Identical shape to
+# gitops-cluster-dev's own copy.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-topology-resource-viewer
+rules:
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-ingestor-topology-resource-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-topology-resource-viewer
+subjects:
+  - kind: ServiceAccount
+    name: backstage-ingestor
+    namespace: backstage
