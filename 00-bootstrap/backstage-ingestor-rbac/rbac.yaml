@@ -138,23 +138,28 @@ subjects:
     namespace: backstage
 ---
 # Tower's Topology tab "all resources" gallery (2026-09-17) - RBAC objects
-# (Roles/RoleBindings) are deliberately excluded from the `view`
-# ClusterRole's own aggregation (Kubernetes never lets `view`/`edit` see
-# who-can-do-what by default, for the same reason it excludes Secret data),
-# so a dedicated grant is the only way to surface them, same reasoning as
-# every other CRD-shaped exception in this file. Read-only, no different in
-# spirit from the `view` binding this identity already has for every other
-# resource kind - this only adds visibility into RBAC *configuration*
-# (which subjects a Role names, which rules a RoleBinding grants), never
-# lets this identity exercise those grants itself. Identical shape to
-# gitops-cluster-dev's own copy.
+# (Roles/RoleBindings/ClusterRoles/ClusterRoleBindings) are deliberately
+# excluded from the `view` ClusterRole's own aggregation (Kubernetes never
+# lets `view`/`edit` see who-can-do-what by default, for the same reason it
+# excludes Secret data), so a dedicated grant is the only way to surface
+# them, same reasoning as every other CRD-shaped exception in this file.
+# ClusterRole/ClusterRoleBinding added alongside the namespaced pair
+# (2026-09-17, same day) once the gallery's RBAC view started resolving a
+# RoleBinding's roleRef to its actual rules - that reference is very
+# commonly a ClusterRole (bound just within one namespace via a
+# RoleBinding), so resolving it needs read access to ClusterRoles too, not
+# just Roles. Read-only, no different in spirit from the `view` binding
+# this identity already has for every other resource kind - this only adds
+# visibility into RBAC *configuration* (which subjects a binding names,
+# which rules a Role/ClusterRole grants), never lets this identity exercise
+# those grants itself. Identical shape to gitops-cluster-dev's own copy.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: backstage-rbac-viewer
 rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["roles", "rolebindings"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
