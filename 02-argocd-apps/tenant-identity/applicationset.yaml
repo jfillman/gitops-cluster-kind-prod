@@ -1,0 +1,84 @@
+# Sibling of ../tenant-onboarding/applicationset.yaml - same generator (same
+# tenants repo, same tenants/*/*/identity.yaml glob), same destination namespace
+# per (appName, env), but a DELIBERATELY separate ApplicationSet/Application per
+# tenant, added 2026-09-18.
+#
+# Why a second Application instead of a third `sources` entry on the existing one:
+# airframe's release-tracking PreSync/PostSync/SyncFail Jobs need the
+# platform-outcome-hook ServiceAccount/Role/RoleBinding + platform-outcome-
+# relay-token Secret to exist before they run, but ArgoCD's operation-retry logic
+# deletes every argocd.argoproj.io/hook-annotated resource before retrying a
+# failed sync - regardless of that resource's own hook-delete-policy. Rendering
+# those resources as a plain (non-hook) source inside the SAME Application as the
+# hooks wouldn't help: they'd still get swept every time THAT Application retries,
+# since the sweep is Application-scoped, not resource-scoped. A genuinely separate
+# Application - its own sync history, never touched by airframe-application's
+# retries - is what actually makes the identity immune. See airframe's
+# charts/airframe-identity/Chart.yaml for the full incident (confirmed live on
+# checkout-api-pre-prod: ~19 retried syncs in under an hour, each one deleting and
+# racing to recreate the ServiceAccount out from under a still-running PostSync Job).
+#
+# Ordering note: this Application and tenant-onboarding's are created together by
+# their respective ApplicationSets reacting to the same identity.yaml file, with no
+# ordering guarantee between their first syncs. That's fine after the very first
+# onboarding (this chart's resources are plain and just sit there once created),
+# but a brand-new tenant's first-ever sync can see airframe-application's PreSync
+# hook Job fail once if it happens to run before this Application's first sync
+# completes - selfHeal retries airframe-application independently until this one
+# has caught up, so it self-resolves rather than deadlocking (unlike the old
+# single-Application design, no hook here is gated on the other Application's
+# completion).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-identity
+  namespace: argocd-apps
+  labels:
+    hangar.io/component: cluster-config
+    hangar.io/subcomponent: tenant-identity
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=invalid"]
+  generators:
+    - git:
+        repoURL: https://github.com/jfillman/gitops-cluster-kind-prod-tenants.git
+        revision: main
+        files:
+          - path: "tenants/*/*/identity.yaml"
+  template:
+    metadata:
+      name: "{{.appName}}-{{.env}}-identity"
+      labels:
+        hangar.io/component: cluster-config
+        hangar.io/subcomponent: tenant-identity
+        hangar.io/app: "{{.appName}}"
+        hangar.io/env: "{{.env}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      namespace: argocd-apps
+    spec:
+      project: "{{.appName}}"
+      sources:
+        - repoURL: https://github.com/jfillman/airframe.git
+          targetRevision: v0.3.76
+          path: charts/airframe-identity
+          helm:
+            valuesObject:
+              appName: "{{.appName}}"
+              cluster: kind-prod
+              envName: "{{.env}}"
+            valueFiles:
+              - $appsrc/kind-prod/{{.env}}/values.yaml
+        - repoURL: "{{.gitopsRepoUrl}}"
+          targetRevision: main
+          ref: appsrc
+          directory:
+            exclude: "*"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "app-{{.appName}}-{{.env}}"
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
