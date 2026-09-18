@@ -46,6 +46,11 @@ spec:
     helm:
       releaseName: argocd-apps
       valuesObject:
+        controller:
+          resources:
+            requests:
+              cpu: 150m
+              memory: 500Mi
         crds:
           install: false
         dex:
@@ -67,6 +72,10 @@ spec:
         # operational posture consistent rather than only hardening
         # whichever one happened to be symptomatic first.
         repoServer:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 250Mi
           readinessProbe:
             timeoutSeconds: 10
             failureThreshold: 5
@@ -356,6 +365,10 @@ spec:
               g, backstage, role:readonly
               g, backstage, role:tower-sync
         server:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
           # Argo Rollouts UI extension: renders the canary/blue-green step timeline
           # inside an Application's resource tree in the web UI. v0.4.0 (not v0.3.7,
           # which gitops-cluster-dev/gitops-cluster-template pin) because this instance
