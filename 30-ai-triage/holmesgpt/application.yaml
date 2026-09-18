@@ -127,12 +127,12 @@ spec:
               secretKey: token
             config:
               toolsets: "repos,issues,pull_requests,actions,context"
-#        resources:
-#          requests:
-#            cpu: 250m
-#            memory: 1024Mi
-#          limits:
-#            memory: 2048Mi
+        resources:
+          requests:
+            cpu: 10m
+            memory: 100Mi
+          limits:
+            memory: 500Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: holmesgpt
